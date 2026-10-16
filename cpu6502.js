@@ -29,6 +29,12 @@ export class CPU6502 {
     modeIMP() {
         return 0;
     }
+    
+    modeZP() {
+        const addr = this.mem.readb(this.PC);
+        this.PC++;
+        return addr;
+    }
 
 
     // --- Instructions ---
@@ -60,6 +66,14 @@ export class CPU6502 {
         return 2;
     }
 
+    // 0xA5: LDA Zero Page
+    OP_LDA_ZP() {
+        const addr = this.modeZP();
+        this.A = this.mem.readb(addr);
+        this.Z = this.A === 0?1:0;
+        this.N = (this.A & 0x80)?1:0;
+        return 3;
+    }
 
     // --- Opcode Table ---
     
@@ -79,6 +93,11 @@ export class CPU6502 {
         this.table[0xA9] = {
             name: "LDA_IMM",
             exec: () => this.OP_LDA_IMM()
+        };
+        
+        this.table[0xA5] = {
+            name: "LDA_ZP",
+            exec: () => this.OP_LDA_ZP()
         };
     }
 
