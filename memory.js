@@ -42,6 +42,7 @@ export class Memory {
                 break;
             default:
                 if (addr < 0x8000) return;
+                this.prg[addr - 0x8000] = data;
                 break; 
         }
     }
