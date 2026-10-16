@@ -34,7 +34,10 @@ export class CPU6502 {
     // --- Instructions ---
 
     OP_UNKNOWN(opcode) {
-        const hexOp = opcode.toString(16).padStart(2, '0').toUpperCase();
+        const hexOp = opcode
+            .toString(16)
+            .padStart(2, '0')
+            .toUpperCase();
         const hexPC = (this.PC - 1)
             .toString(16)
             .padStart(4, '0')
