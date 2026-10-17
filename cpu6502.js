@@ -1,5 +1,5 @@
 export class CPU6502 {
-    constructor(memory) {
+    constructor(memory, domPrinter) {
         this.mem = memory;
 
         // Registers
@@ -15,6 +15,8 @@ export class CPU6502 {
 
         this.cycles = 0;
         this.initTable();
+
+        this.domPrinter = domPrinter;
     }
     
     
@@ -177,7 +179,8 @@ export class CPU6502 {
         const instruction = this.table[op];
         
         if (!instruction) {
-            throw new Error(`Unknown opcode: 0x${op.toString(16)}`);
+            const hexOp = op.toString(16).toUpperCase().padStart(2, '0');
+            this.domPrinter.log(`Unknown opcode: 0x${hexOp}`);
         }
     
         const cycles = instruction.exec();
