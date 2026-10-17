@@ -158,6 +158,18 @@ export class CPU6502 {
 
     cpuReset() {
         this.PC = this.mem.readw(0xFFFC);
+        this.A = 0;
+        this.X = 0;
+        this.Y = 0;
+        this.SP = 0xFD;
+        this.C = 0; 
+        this.Z = 0; 
+        this.I = 1;
+        this.D = 0; 
+        this.B = 0; 
+        this.V = 0; 
+        this.N = 0;
+        this.cycles = 0;
     }
 
     cpuStep() {
