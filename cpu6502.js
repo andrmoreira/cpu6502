@@ -57,6 +57,23 @@ export class CPU6502 {
         this.PC++;
         return addr;
     }
+    
+    modeINDX() {
+        let zp = (this.mem.readb(this.PC) + this.X) & 0xFF;
+        this.PC++;
+        const lo = this.mem.readb(zp);
+        const hi = this.mem.readb((zp + 1) & 0xFF); // Wrap-around na zero page
+        return (hi << 8) | lo;
+    }
+    
+    modeINDY() {
+        const zp = this.mem.readb(this.PC);
+        this.PC++;
+        const lo = this.mem.readb(zp);
+        const hi = this.mem.readb((zp + 1) & 0xFF);
+        const base = (hi << 8) | lo;
+        return (base + this.Y) & 0xFFFF;
+    }
 
 
     // --- Instructions ---
@@ -78,6 +95,22 @@ export class CPU6502 {
     OP_BRK() {
         return 7;
     }
+    
+    // 0xA1: LDA (Indirect, X)
+    OP_LDA_INDX() {
+        const addr = this.modeINDX();
+        this.A = this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 6;
+    }
+    
+    // 0xA2: LDX Immediate
+    OP_LDX_IMM() {
+        const addr = this.modeIMM();
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+        return 2;
+    }
 
     // 0xA5: LDA Zero Page
     OP_LDA_ZP() {
@@ -97,6 +130,14 @@ export class CPU6502 {
         return 2;
     }
     
+    // 0xB1: LDA (Indirect), Y
+    OP_LDA_INDY() {
+        const addr = this.modeINDY();
+        this.A = this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 5;
+    }
+
     // 0xB5: LDA Zero Page, X
     OP_LDA_ZPX() {
         const addr = this.modeZPX();
@@ -128,6 +169,16 @@ export class CPU6502 {
             name: "BRK",
             exec: () => this.OP_BRK()
         };
+        
+        this.table[0xA1] = {
+            name: "LDA_INDX",
+            exec: () => this.OP_LDA_INDX()
+        };
+        
+        this.table[0xA2] = {
+            name: "LDX_IMM",
+            exec: () => this.OP_LDX_IMM()
+        };
 
         this.table[0xA5] = {
             name: "LDA_ZP",
@@ -137,6 +188,11 @@ export class CPU6502 {
         this.table[0xA9] = {
             name: "LDA_IMM",
             exec: () => this.OP_LDA_IMM()
+        };
+        
+        this.table[0xB1] = {
+            name: "LDA_INDY",
+            exec: () => this.OP_LDA_INDY()
         };
         
         this.table[0xB5] = {
