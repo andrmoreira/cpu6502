@@ -49,6 +49,12 @@ export class CPU6502 {
         this.PC++;
         return addr;
     }
+    
+    modeZPY() {
+        const addr = (this.mem.readb(this.PC) + this.Y) & 0xFF;
+        this.PC++;
+        return addr;
+    }
 
 
     // --- Instructions ---
@@ -71,15 +77,6 @@ export class CPU6502 {
         return 7;
     }
 
-    // 0xA9: LDA Immediate
-    OP_LDA_IMM() {
-        const addr = this.modeIMM();
-        this.A = this.mem.readb(addr);
-        this.Z = this.A === 0?1:0;
-        this.N = (this.A & 0x80)?1:0;
-        return 2;
-    }
-
     // 0xA5: LDA Zero Page
     OP_LDA_ZP() {
         const addr = this.modeZP();
@@ -89,11 +86,28 @@ export class CPU6502 {
         return 3;
     }
     
+    // 0xA9: LDA Immediate
+    OP_LDA_IMM() {
+        const addr = this.modeIMM();
+        this.A = this.mem.readb(addr);
+        this.Z = this.A === 0?1:0;
+        this.N = (this.A & 0x80)?1:0;
+        return 2;
+    }
+    
     // 0xB5: LDA Zero Page, X
     OP_LDA_ZPX() {
         const addr = this.modeZPX();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
+        return 4;
+    }
+    
+    // 0xB6: LDX Zero Page, Y
+    OP_LDX_ZPY() {
+        const addr = this.modeZPY();
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
         return 4;
     }
 
@@ -113,19 +127,24 @@ export class CPU6502 {
             exec: () => this.OP_BRK()
         };
 
-        this.table[0xA9] = {
-            name: "LDA_IMM",
-            exec: () => this.OP_LDA_IMM()
-        };
-        
         this.table[0xA5] = {
             name: "LDA_ZP",
             exec: () => this.OP_LDA_ZP()
         };
         
+        this.table[0xA9] = {
+            name: "LDA_IMM",
+            exec: () => this.OP_LDA_IMM()
+        };
+        
         this.table[0xB5] = {
             name: "LDA_ZPX",
             exec: () => this.OP_LDA_ZPX()
+        };
+        
+        this.table[0xB6] = {
+            name: "LDX_ZPY",
+            exec: () => this.OP_LDX_ZPY()
         };
     }
 
@@ -144,8 +163,13 @@ export class CPU6502 {
     cpuStep() {
         const op = this.mem.readb(this.PC++);
         const instruction = this.table[op];
-        const cyclesSpent = instruction.exec();
-        this.cycles += cyclesSpent;
-        return cyclesSpent;
+        
+        if (!instruction) {
+            throw new Error(`Unknown opcode: 0x${op.toString(16)}`);
+        }
+    
+        const cycles = instruction.exec();
+        this.cycles += cycles;
+        return cycles;
     }
 }

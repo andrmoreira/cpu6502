@@ -56,10 +56,27 @@ class Test {
         }
     }
 
+    TEST_LDX_ZPY() {
+        this.emu = new Emulator(); 
+        this.emu.cpu.Y = 0x03;
+        this.emu.memory.writeb(0x13, 0x55);
+        
+        this.emu.loadProgram(0x8000, [0xB6, 0x10, 0x00]);
+        this.emu.cpu.cpuInit();
+        this.emu.cpu.cpuStep();
+
+        if (this.emu.cpu.X === 0x55) {
+            this.log("LDX ZP,Y passed!");
+        } else {
+            this.log(`LDX ZP,Y failed! expected 0x55, output 0x${this.emu.cpu.X.toString(16)}`);
+        }
+    }
+
     run() {
         this.TEST_LDA_IMM();
         this.TEST_LDA_ZP();
         this.TEST_LDA_ZPX();
+        this.TEST_LDX_ZPY();
     }
 }
 
