@@ -69,6 +69,21 @@ class Test {
         }
     }
     
+    TEST_LDA_ABS() {
+        this.emu = new Emulator(this.domPrinter);
+        this.emu.loadProgram(0x8000, [0xAD, 0x00, 0x02]);
+        this.emu.cpu.cpuInit();
+
+        this.emu.memory.writeb(0x0200, 0x88);
+        this.emu.cpu.cpuStep();
+
+        if (this.emu.cpu.A === 0x88) {
+            this.domPrinter.log("LDA Absolute passed!");
+        } else {
+            this.domPrinter.log(`LDA Absolute failed! expected 0x88, output 0x${this.emu.cpu.A.toString(16)}`);
+        }
+    }
+    
     TEST_LDA_INDY() {
         this.emu = new Emulator(this.domPrinter);
         this.emu.loadProgram(0x8000, [0xB1, 0x40, 0x00]);
@@ -120,6 +135,38 @@ class Test {
         }
     }
 
+    TEST_LDA_ABSY() {
+        this.emu = new Emulator(this.domPrinter);
+        this.emu.loadProgram(0x8000, [0xB9, 0x00, 0x02]);
+        this.emu.cpu.cpuInit();
+
+        this.emu.cpu.Y = 0x05;
+        this.emu.memory.writeb(0x0205, 0xDD);
+        this.emu.cpu.cpuStep();
+
+        if (this.emu.cpu.A === 0xDD) {
+            this.domPrinter.log("LDA Absolute,Y passed!");
+        } else {
+            this.domPrinter.log(`LDA Absolute,Y failed! expected 0xDD, output 0x${this.emu.cpu.A.toString(16)}`);
+        }
+    }
+    
+    TEST_LDA_ABSX() {
+        this.emu = new Emulator(this.domPrinter);
+        this.emu.loadProgram(0x8000, [0xBD, 0x00, 0x02]);
+        this.emu.cpu.cpuInit();
+
+        this.emu.cpu.X = 0x0A;
+        this.emu.memory.writeb(0x020A, 0xCC);
+        this.emu.cpu.cpuStep();
+
+        if (this.emu.cpu.A === 0xCC) {
+            this.domPrinter.log("LDA Absolute,X passed!");
+        } else {
+            this.domPrinter.log(`LDA Absolute,X failed! expected 0xCC, output 0x${this.emu.cpu.A.toString(16)}`);
+        }
+    }
+
     run() {
         // 0xA1
         this.TEST_LDA_INDX();
@@ -129,12 +176,18 @@ class Test {
         this.TEST_LDA_ZP();
         // 0xA9
         this.TEST_LDA_IMM();
+        // 0xAD
+        this.TEST_LDA_ABS();
         // 0xB1
         this.TEST_LDA_INDY();
         // 0xB5
         this.TEST_LDA_ZPX();
         // 0xB6
         this.TEST_LDX_ZPY();
+        // 0xB9
+        this.TEST_LDA_ABSY();
+        // 0xBD
+        this.TEST_LDA_ABSX();
     }
 }
 
