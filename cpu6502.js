@@ -87,7 +87,7 @@ export class CPU6502 {
             .toString(16)
             .padStart(4, '0')
             .toUpperCase();
-        console.warn(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
+        this.domPrinter.log(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
         return 2;
     }
 
@@ -158,12 +158,7 @@ export class CPU6502 {
     // --- Opcode Table ---
     
     initTable() {
-        this.table = new Array(256)
-            .fill(null)
-            .map((_, index) => ({
-                name: "UNKNOWN",
-                exec: () => this.OP_UNKNOWN(index)
-            }));
+        this.table = new Array(256).fill(null)
 
         this.table[0x00] = {
             name: "BRK",
@@ -235,8 +230,9 @@ export class CPU6502 {
         const instruction = this.table[op];
         
         if (!instruction) {
-            const hexOp = op.toString(16).toUpperCase().padStart(2, '0');
-            this.domPrinter.log(`Unknown opcode: 0x${hexOp}`);
+            const cycles = this.OP_UNKNOWN(op);
+            this.cycles += cycles;
+            return cycles;
         }
     
         const cycles = instruction.exec();
