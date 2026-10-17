@@ -27,6 +27,23 @@ export class CPU6502 {
         this.N = (val & 0x80)?1:0;
     }
 
+    pushStack(val) {
+        this.mem.writeb(0x0100 + this.SP, val & 0xFF);
+        this.SP = (this.SP - 1) & 0xFF;
+    }
+    
+    getStatusFlags(breakFlag=false) {
+        let p=0;
+        p |= (this.N << 7);
+        p |= (this.V << 6);
+        p |= (1 << 5); // Bit 5 is always 1 on the 6502
+        p |= (breakFlag ? (1 << 4) : 0); // Flag B
+        p |= (this.D << 3);
+        p |= (this.I << 2);
+        p |= (this.Z << 1);
+        return p;
+    }
+
 
     // --- Addressing Modes ---
     
@@ -126,7 +143,15 @@ export class CPU6502 {
 
     // 0x00: BRK
     OP_BRK() {
-        return 7;
+        const pushPC = (this.PC+1) & 0xFFFF;
+        this.pushStack(pushPC >> 8);
+        this.pushStack(pushPC & 0xFF);
+        this.pushStack(this.getStatusFlags(true));
+        this.I=1;
+        const lo = this.mem.readb(0xFFFE);
+        const hi = this.mem.readb(0xFFFF);
+        this.PC = (hi << 8) | lo;
+        return 7;
     }
     
     // 0xA1: LDA (Indirect, X)

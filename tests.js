@@ -9,6 +9,31 @@ class Test {
 
     // tests
 
+    TEST_BRK() {
+        this.emu = new Emulator(this.domPrinter);
+        this.emu.loadProgram(0x8000, [0x00]);
+        this.emu.cpu.cpuInit();
+        
+        this.emu.memory.writeb(0xFFFC, 0x00);
+        this.emu.memory.writeb(0xFFFD, 0x80);
+
+        this.emu.memory.writeb(0xFFFE, 0x00);
+        this.emu.memory.writeb(0xFFFF, 0x90);
+
+        const initialSP = this.emu.cpu.SP;
+        this.emu.cpu.cpuStep();
+
+        const pcPassed = this.emu.cpu.PC === 0x9000;
+        const interruptPassed = this.emu.cpu.I === 1;
+        const spPassed = this.emu.cpu.SP === ((initialSP - 3) & 0xFF);
+
+        if (pcPassed && interruptPassed && spPassed) {
+            this.domPrinter.log("BRK passed!");
+        } else {
+            this.domPrinter.log(`BRK failed! PC: 0x${this.emu.cpu.PC.toString(16)}, I: ${this.emu.cpu.I}, SP: 0x${this.emu.cpu.SP.toString(16)}`);
+        }
+    }
+    
     TEST_LDA_INDX() {
         this.emu = new Emulator(this.domPrinter);
         this.emu.loadProgram(0x8000, [0xA1, 0x20, 0x00]);
@@ -168,6 +193,8 @@ class Test {
     }
 
     run() {
+        // 0x00
+        this.TEST_BRK();
         // 0xA1
         this.TEST_LDA_INDX();
         // 0xA2
