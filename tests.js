@@ -40,9 +40,26 @@ class Test {
         }
     }
 
+    TEST_LDA_ZPX() {
+        this.emu = new Emulator(); 
+        this.emu.cpu.X = 0x05;
+        this.emu.memory.writeb(0x15, 0x77);
+
+        this.emu.loadProgram(0x8000, [0xB5, 0x10, 0x00]);
+        this.emu.cpu.cpuInit();
+        this.emu.cpu.cpuStep();
+
+        if (this.emu.cpu.A === 0x77) {
+            this.log("LDA ZP,X passed!");
+        } else {
+            this.log(`LDA ZP,X failed! expected 0x77, output 0x${this.emu.cpu.A.toString(16)}`);
+        }
+    }
+
     run() {
         this.TEST_LDA_IMM();
         this.TEST_LDA_ZP();
+        this.TEST_LDA_ZPX();
     }
 }
 

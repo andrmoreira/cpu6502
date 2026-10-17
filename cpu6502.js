@@ -16,6 +16,14 @@ export class CPU6502 {
         this.cycles = 0;
         this.initTable();
     }
+    
+    
+    // --- Helpers ---
+
+    updateZN(val) {
+        this.Z = (val === 0)?1:0;
+        this.N = (val & 0x80)?1:0;
+    }
 
 
     // --- Addressing Modes ---
@@ -32,6 +40,12 @@ export class CPU6502 {
     
     modeZP() {
         const addr = this.mem.readb(this.PC);
+        this.PC++;
+        return addr;
+    }
+    
+    modeZPX() {
+        const addr = (this.mem.readb(this.PC) + this.X) & 0xFF;
         this.PC++;
         return addr;
     }
@@ -74,6 +88,15 @@ export class CPU6502 {
         this.N = (this.A & 0x80)?1:0;
         return 3;
     }
+    
+    // 0xB5: LDA Zero Page, X
+    OP_LDA_ZPX() {
+        const addr = this.modeZPX();
+        this.A = this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 4;
+    }
+
 
     // --- Opcode Table ---
     
@@ -98,6 +121,11 @@ export class CPU6502 {
         this.table[0xA5] = {
             name: "LDA_ZP",
             exec: () => this.OP_LDA_ZP()
+        };
+        
+        this.table[0xB5] = {
+            name: "LDA_ZPX",
+            exec: () => this.OP_LDA_ZPX()
         };
     }
 
