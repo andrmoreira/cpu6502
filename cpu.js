@@ -263,6 +263,14 @@ export class CPU6502 {
         return 5;
     }
 
+    // 0xB4: LDY Zero Page, X
+    OP_LDY_ZPX() {
+        const addr = this.modeZPX();
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+        return 4;
+    }
+
     // 0xB5: LDA Zero Page, X
     OP_LDA_ZPX() {
         const addr = this.modeZPX();
@@ -279,11 +287,34 @@ export class CPU6502 {
         return 4;
     }
 
+    // 0xB8: CLV
+    OP_CLV() {
+        this.modeIMP();
+        this.V=0;
+        return 2;
+    }
+
     // 0xB9: LDA Absolute, Y
     OP_LDA_ABSY() {
         const addr = this.modeABSY();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
+        return 4;
+    }
+
+    // 0xBA: TSX
+    OP_TSX() {
+        this.modeIMP();
+        this.X = this.SP;
+        this.updateZN(this.X);
+        return 2;
+    }
+
+    // 0xBC: LDY Absolute, X
+    OP_LDY_ABSX() {
+        const addr = this.modeABSX();
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
         return 4;
     }
     
@@ -294,6 +325,14 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 4;
     }
+
+    // 0xBE: LDX Absolute, Y
+    OP_LDX_ABSY() {
+        const addr = this.modeABSY();
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+        return 4;
+    }
 
 
     // --- Opcode Table ---
@@ -370,6 +409,11 @@ export class CPU6502 {
             name: "LDA_INDY",
             exec: () => this.OP_LDA_INDY()
         };
+
+        this.table[0xB4] = {
+            name: "LDY_ZPX",
+            exec: () => this.OP_LDY_ZPX()
+        };
         
         this.table[0xB5] = {
             name: "LDA_ZPX",
@@ -381,15 +425,35 @@ export class CPU6502 {
             exec: () => this.OP_LDX_ZPY()
         };
 
+        this.table[0xB8] = {
+            name: "CLV",
+            exec: () => this.OP_CLV()
+        };
+
         this.table[0xB9] = {
             name: "LDA_ABSY",
             exec: () => this.OP_LDA_ABSY()
         };
-        
+        
+        this.table[0xBA] = {
+            name: "TSX",
+            exec: () => this.OP_TSX()
+        };
+
+        this.table[0xBC] = {
+            name: "LDY_ABSX",
+            exec: () => this.OP_LDY_ABSX()
+        };
+
         this.table[0xBD] = {
             name: "LDA_ABSX",
             exec: () => this.OP_LDA_ABSX()
         };
+
+        this.table[0xBE] = {
+            name: "LDX_ABSY",
+            exec: () => this.OP_LDX_ABSY()
+        };
     }
 
 
