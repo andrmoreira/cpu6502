@@ -156,6 +156,14 @@ export class CPU6502 {
         this.PC = (hi << 8) | lo;
         return 7;
     }
+
+    // 0xA0: LDY Immediate
+    OP_LDY_IMM() {
+        const addr = this.modeIMM();
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+        return 2;
+    }
     
     // 0xA1: LDA (Indirect, X)
     OP_LDA_INDX() {
@@ -173,6 +181,14 @@ export class CPU6502 {
         return 2;
     }
 
+    // 0xA4: LDY Zero Page
+    OP_LDY_ZP() {
+        const addr = this.modeZP();
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+        return 3;
+    }
+
     // 0xA5: LDA Zero Page
     OP_LDA_ZP() {
         const addr = this.modeZP();
@@ -181,6 +197,22 @@ export class CPU6502 {
         this.N = (this.A & 0x80)?1:0;
         return 3;
     }
+
+    // 0xA6: LDX Zero Page
+    OP_LDX_ZP() {
+        const addr = this.modeZP();
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+        return 3;
+    }
+
+    // 0xA8 TAY
+    OP_TAY() {
+        this.modeIMP();
+        this.Y = this.A;
+        this.updateZN(this.Y);
+        return 2;
+    }
     
     // 0xA9: LDA Immediate
     OP_LDA_IMM() {
@@ -190,6 +222,22 @@ export class CPU6502 {
         this.N = (this.A & 0x80)?1:0;
         return 2;
     }
+
+    // 0xAA: TAX
+    OP_TAX() {
+        this.modeIMP();
+        this.X = this.A;
+        this.updateZN(this.X);
+        return 2;
+    }
+
+    // 0xAC: LDY Absolute
+    OP_LDY_ABS() {
+        const addr = this.modeABS();
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+        return 4;
+    }
     
     // 0xAD: LDA Absolute
     OP_LDA_ABS() {
@@ -198,6 +246,14 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 4;
     }
+
+    // 0xAE: LDX Absolute
+    OP_LDX_ABS() {
+        const addr = this.modeABS();
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+        return 4;
+    }
     
     // 0xB1: LDA (Indirect), Y
     OP_LDA_INDY() {
@@ -249,6 +305,11 @@ export class CPU6502 {
             name: "BRK",
             exec: () => this.OP_BRK()
         };
+
+        this.table[0xA0] = {
+            name: "LDY_IMM",
+            exec: () => this.OP_LDY_IMM()
+        };
         
         this.table[0xA1] = {
             name: "LDA_INDX",
@@ -260,20 +321,50 @@ export class CPU6502 {
             exec: () => this.OP_LDX_IMM()
         };
 
+        this.table[0xA4] = {
+            name: "LDY_ZP",
+            exec: () => this.OP_LDY_ZP()
+        };
+
         this.table[0xA5] = {
             name: "LDA_ZP",
             exec: () => this.OP_LDA_ZP()
         };
+
+        this.table[0xA6] = {
+            name: "LDX_ZP",
+            exec: () => this.OP_LDX_ZP()
+        };
+        
+        this.table[0xA8] = {
+            name: "TAY",
+            exec: () => this.OP_TAY()
+        };
         
         this.table[0xA9] = {
             name: "LDA_IMM",
             exec: () => this.OP_LDA_IMM()
         };
+
+        this.table[0xAA] = {
+            name: "TAX",
+            exec: () => this.OP_TAX()
+        };
+        
+        this.table[0xAC] = {
+            name: "LDY_ABS",
+            exec: () => this.OP_LDY_ABS()
+        };
         
         this.table[0xAD] = {
             name: "LDA_ABS",
             exec: () => this.OP_LDA_ABS()
         };
+
+        this.table[0xAE] = {
+            name: "LDX_ABS",
+            exec: () => this.OP_LDX_ABS()
+        };
         
         this.table[0xB1] = {
             name: "LDA_INDY",
