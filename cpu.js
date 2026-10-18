@@ -1,5 +1,5 @@
 export class CPU6502 {
-    constructor(memory, domPrinter) {
+    constructor(memory) {
         this.mem = memory;
 
         // Registers
@@ -10,13 +10,16 @@ export class CPU6502 {
         this.PC = 0;
 
         // Flags
-        this.C = 0; this.Z = 0; this.I = 1;
-        this.D = 0; this.B = 0; this.V = 0; this.N = 0;
+        this.C = 0;
+        this.Z = 0;
+        this.I = 1;
+        this.D = 0;
+        this.B = 0;
+        this.V = 0;
+        this.N = 0;
 
         this.cycles = 0;
         this.initTable();
-
-        this.domPrinter = domPrinter;
     }
     
     
@@ -137,7 +140,7 @@ export class CPU6502 {
             .toString(16)
             .padStart(4, '0')
             .toUpperCase();
-        this.domPrinter.log(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
+        console.log(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
         return 2;
     }
 
