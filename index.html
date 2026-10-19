@@ -1,11 +1,33 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>6502 Emulator</title>
 </head>
 <body>
     <h1>6502 Emulator</h1>
-    <!--<script type="module" src=""></script>-->
+    
+    <div>
+        <input type="text" id="code" value="A9 42 A2 10 AA 00">
+        <button id="run">Run</button>
+    </div>
+    
+    <pre id="output">Ready...</pre>
+
+    <script type="module">
+        import {Emulator} from './emulator.js';
+
+        const emu = new Emulator();
+        const output = document.getElementById('output');
+
+        document.getElementById('run').addEventListener('click', () => {
+            const hex = document.getElementById('code').value;
+            try {
+                output.innerText = emu.runHexSequence(hex);
+            } catch (e) {
+                output.innerText = "Error: " + e.message;
+            }
+        });
+    </script>
 </body>
 </html>

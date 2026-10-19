@@ -164,7 +164,7 @@ export class CPU6502 {
     // 0x06: ASL Zero Page
     OP_ASL_ZP() {
         const addr = this.modeZP();
-        let val = this.mem.readb();
+        let val = this.mem.readb(addr);
         this.C = (val & 0x80)?1:0;
         val = (val << 1) & 0xFF;
         this.mem.writeb(addr, val);
