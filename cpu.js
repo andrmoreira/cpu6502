@@ -118,6 +118,13 @@ export class CPU6502 {
         const base = (hi << 8) | lo;
         return (base + this.Y) & 0xFFFF;
     }
+    // Relative
+    modeREL() {
+        const offset = this.mem.readb(this.PC);
+        this.PC++;
+        if (offset & 0x80) offset |= 0xFF00; // Sign extend
+        return offset;
+    }
 
 
     // --- Instructions ---
@@ -137,6 +144,7 @@ export class CPU6502 {
 
     // 0x00: BRK
     OP_BRK() {
+        // break to irq handler
         const pushPC = (this.PC+1) & 0xFFFF;
         this.pushStack(pushPC >> 8);
         this.pushStack(pushPC & 0xFF);
@@ -149,6 +157,7 @@ export class CPU6502 {
     }
     // 0x01: ORA (Indirect, X)
     OP_ORA_INDX() {
+        // ORs A with the value, set Z and N
         const addr = this.modeINDX();
         this.A |= this.mem.readb(addr);
         this.updateZN(this.A);
@@ -156,6 +165,7 @@ export class CPU6502 {
     }
     // 0x05: ORA Zero Page
     OP_ORA_ZP() {
+        // ORs A with the value, set Z and N
         const addr = this.modeZP();
         this.A |= this.mem.readb(addr);
         this.updateZN(this.A);
@@ -163,6 +173,7 @@ export class CPU6502 {
     }
     // 0x06: ASL Zero Page
     OP_ASL_ZP() {
+        // shifts a memory location left 1, set C, Z and N
         const addr = this.modeZP();
         let val = this.mem.readb(addr);
         this.C = (val & 0x80)?1:0;
@@ -173,12 +184,14 @@ export class CPU6502 {
     }
     // 0x08: PHP
     OP_PHP() {
+        // pushes the flags to the stack
         this.modeIMP();
         this.pushStack(this.getStatusFlags(true));
         return 3;
     }
     // 0x0A: ASL Accumulator
     OP_ASL_ACC() {
+        // shifts A left 1, set C, Z and N
         this.modeIMP();
         this.C = (this.A & 0x80)?1:0;
         this.A = (this.A << 1) & 0xFF;
@@ -187,6 +200,7 @@ export class CPU6502 {
     }
     // 0xA0: LDY Immediate
     OP_LDY_IMM() {
+        // loads a value in y, sets Z and N
         const addr = this.modeIMM();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -194,6 +208,7 @@ export class CPU6502 {
     }
     // 0xA1: LDA (Indirect, X)
     OP_LDA_INDX() {
+        // loads a value in a, sets Z and N
         const addr = this.modeINDX();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -201,6 +216,7 @@ export class CPU6502 {
     }
     // 0xA2: LDX Immediate
     OP_LDX_IMM() {
+        // loads x value in x, sets Z and N
         const addr = this.modeIMM();
         this.X = this.mem.readb(addr);
         this.updateZN(this.X);
@@ -208,6 +224,7 @@ export class CPU6502 {
     }
     // 0xA4: LDY Zero Page
     OP_LDY_ZP() {
+        // loads a value in y, sets Z and N
         const addr = this.modeZP();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -215,6 +232,7 @@ export class CPU6502 {
     }
     // 0xA5: LDA Zero Page
     OP_LDA_ZP() {
+        // loads a value in a, sets Z and N
         const addr = this.modeZP();
         this.A = this.mem.readb(addr);
         this.Z = this.A === 0?1:0;
@@ -223,6 +241,7 @@ export class CPU6502 {
     }
     // 0xA6: LDX Zero Page
     OP_LDX_ZP() {
+        // loads x value in x, sets Z and N
         const addr = this.modeZP();
         this.X = this.mem.readb(addr);
         this.updateZN(this.X);
@@ -230,6 +249,7 @@ export class CPU6502 {
     }
     // 0xA8 TAY
     OP_TAY() {
+        // transfers a to y, sets Z and N
         this.modeIMP();
         this.Y = this.A;
         this.updateZN(this.Y);
@@ -237,6 +257,7 @@ export class CPU6502 {
     }
     // 0xA9: LDA Immediate
     OP_LDA_IMM() {
+        // loads a value in a, sets Z and N
         const addr = this.modeIMM();
         this.A = this.mem.readb(addr);
         this.Z = this.A === 0?1:0;
@@ -245,6 +266,7 @@ export class CPU6502 {
     }
     // 0xAA: TAX
     OP_TAX() {
+        // transfers a to x, sets Z and N
         this.modeIMP();
         this.X = this.A;
         this.updateZN(this.X);
@@ -252,6 +274,7 @@ export class CPU6502 {
     }
     // 0xAC: LDY Absolute
     OP_LDY_ABS() {
+        // loads a value in y, sets Z and N
         const addr = this.modeABS();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -259,6 +282,7 @@ export class CPU6502 {
     }
     // 0xAD: LDA Absolute
     OP_LDA_ABS() {
+        // loads a value in a, sets Z and N
         const addr = this.modeABS();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -266,6 +290,7 @@ export class CPU6502 {
     }
     // 0xAE: LDX Absolute
     OP_LDX_ABS() {
+        // loads x value in x, sets Z and N
         const addr = this.modeABS();
         this.X = this.mem.readb(addr);
         this.updateZN(this.X);
@@ -273,6 +298,7 @@ export class CPU6502 {
     }
     // 0xB1: LDA (Indirect), Y
     OP_LDA_INDY() {
+        // loads a value in a, sets Z and N
         const addr = this.modeINDY();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -280,6 +306,7 @@ export class CPU6502 {
     }
     // 0xB4: LDY Zero Page, X
     OP_LDY_ZPX() {
+        // loads a value in y, sets Z and N
         const addr = this.modeZPX();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -287,6 +314,7 @@ export class CPU6502 {
     }
     // 0xB5: LDA Zero Page, X
     OP_LDA_ZPX() {
+        // loads a value in a, sets Z and N
         const addr = this.modeZPX();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -294,6 +322,7 @@ export class CPU6502 {
     }
     // 0xB6: LDX Zero Page, Y
     OP_LDX_ZPY() {
+        // loads x value in x, sets Z and N
         const addr = this.modeZPY();
         this.X = this.mem.readb(addr);
         this.updateZN(this.X);
@@ -301,12 +330,14 @@ export class CPU6502 {
     }
     // 0xB8: CLV
     OP_CLV() {
+        // clear overflow flag
         this.modeIMP();
         this.V=0;
         return 2;
     }
     // 0xB9: LDA Absolute, Y
     OP_LDA_ABSY() {
+        // loads a value in a, sets Z and N
         const addr = this.modeABSY();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -314,6 +345,7 @@ export class CPU6502 {
     }
     // 0xBA: TSX
     OP_TSX() {
+        // transfers the stack pointer to x, sets Z and N
         this.modeIMP();
         this.X = this.SP;
         this.updateZN(this.X);
@@ -321,6 +353,7 @@ export class CPU6502 {
     }
     // 0xBC: LDY Absolute, X
     OP_LDY_ABSX() {
+        // loads a value in y, sets Z and N
         const addr = this.modeABSX();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -328,6 +361,7 @@ export class CPU6502 {
     }
     // 0xBD: LDA Absolute, X
     OP_LDA_ABSX() {
+        // loads a value in a, sets Z and N
         const addr = this.modeABSX();
         this.A = this.mem.readb(addr);
         this.updateZN(this.A);
@@ -335,10 +369,22 @@ export class CPU6502 {
     }
     // 0xBE: LDX Absolute, Y
     OP_LDX_ABSY() {
+        // loads x value in x, sets Z and N
         const addr = this.modeABSY();
         this.X = this.mem.readb(addr);
         this.updateZN(this.X);
         return 4;
+    }
+    // 0xD0: BNE
+    OP_BNE() {
+        // branches if Z is 0
+        const offset = this.modeREL();
+        let cycles = 2;
+        if (this.Z===0) {
+            cycles++;
+            this.PC = (this.PC + offset) & 0xFFFF;
+        }
+        return cycles;
     }
 
 
@@ -353,7 +399,7 @@ export class CPU6502 {
         this.table[0x08] = {name: "PHP",       exec: () => this.OP_PHP()};
         this.table[0x0A] = {name: "ASL_ACC",   exec: () => this.OP_ASL_ACC()};
         this.table[0xA0] = {name: "LDY_IMM",   exec: () => this.OP_LDY_IMM()};
-        this.table[0xA1] = {name: "LDA_INDX",  exec: () => this.OP_LDA_INDX()};        
+        this.table[0xA1] = {name: "LDA_INDX",  exec: () => this.OP_LDA_INDX()};        
         this.table[0xA2] = {name: "LDX_IMM",   exec: () => this.OP_LDX_IMM()};
         this.table[0xA4] = {name: "LDY_ZP",    exec: () => this.OP_LDY_ZP()};
         this.table[0xA5] = {name: "LDA_ZP",    exec: () => this.OP_LDA_ZP()};
@@ -374,6 +420,7 @@ export class CPU6502 {
         this.table[0xBC] = {name: "LDY_ABSX",  exec: () => this.OP_LDY_ABSX()};
         this.table[0xBD] = {name: "LDA_ABSX",  exec: () => this.OP_LDA_ABSX()};
         this.table[0xBE] = {name: "LDX_ABSY",  exec: () => this.OP_LDX_ABSY()};
+        this.table[0xD0] = {name: "BNE",       exec: () => this.OP_BNE()};
     }
 
 
