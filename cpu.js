@@ -25,6 +25,10 @@ export class CPU6502 {
     
     // --- Helpers ---
 
+    OP(code, name, fn) {
+        this.table[code] = {name,exec: fn};
+    }
+
     updateZN(val) {
         this.Z = (val === 0)?1:0;
         this.N = (val & 0x80)?1:0;
@@ -392,35 +396,35 @@ export class CPU6502 {
     
     initTable() {
         this.table = new Array(256).fill(null);
-        this.table[0x00] = {name: "BRK",       exec: () => this.OP_BRK()};
-        this.table[0x01] = {name: "ORA_INDX",  exec: () => this.OP_ORA_INDX()};
-        this.table[0x05] = {name: "ORA_ZP",    exec: () => this.OP_ORA_ZP()};
-        this.table[0x06] = {name: "ASL_ZP",    exec: () => this.OP_ASL_ZP()};
-        this.table[0x08] = {name: "PHP",       exec: () => this.OP_PHP()};
-        this.table[0x0A] = {name: "ASL_ACC",   exec: () => this.OP_ASL_ACC()};
-        this.table[0xA0] = {name: "LDY_IMM",   exec: () => this.OP_LDY_IMM()};
-        this.table[0xA1] = {name: "LDA_INDX",  exec: () => this.OP_LDA_INDX()};        
-        this.table[0xA2] = {name: "LDX_IMM",   exec: () => this.OP_LDX_IMM()};
-        this.table[0xA4] = {name: "LDY_ZP",    exec: () => this.OP_LDY_ZP()};
-        this.table[0xA5] = {name: "LDA_ZP",    exec: () => this.OP_LDA_ZP()};
-        this.table[0xA6] = {name: "LDX_ZP",    exec: () => this.OP_LDX_ZP()};
-        this.table[0xA8] = {name: "TAY",       exec: () => this.OP_TAY()};        
-        this.table[0xA9] = {name: "LDA_IMM",   exec: () => this.OP_LDA_IMM()};
-        this.table[0xAA] = {name: "TAX",       exec: () => this.OP_TAX()};
-        this.table[0xAC] = {name: "LDY_ABS",   exec: () => this.OP_LDY_ABS()};
-        this.table[0xAD] = {name: "LDA_ABS",   exec: () => this.OP_LDA_ABS()};
-        this.table[0xAE] = {name: "LDX_ABS",   exec: () => this.OP_LDX_ABS()};        
-        this.table[0xB1] = {name: "LDA_INDY",  exec: () => this.OP_LDA_INDY()};
-        this.table[0xB4] = {name: "LDY_ZPX",   exec: () => this.OP_LDY_ZPX()};
-        this.table[0xB5] = {name: "LDA_ZPX",   exec: () => this.OP_LDA_ZPX()};        
-        this.table[0xB6] = {name: "LDX_ZPY",   exec: () => this.OP_LDX_ZPY()};
-        this.table[0xB8] = {name: "CLV",       exec: () => this.OP_CLV()};
-        this.table[0xB9] = {name: "LDA_ABSY",  exec: () => this.OP_LDA_ABSY()};
-        this.table[0xBA] = {name: "TSX",       exec: () => this.OP_TSX()};
-        this.table[0xBC] = {name: "LDY_ABSX",  exec: () => this.OP_LDY_ABSX()};
-        this.table[0xBD] = {name: "LDA_ABSX",  exec: () => this.OP_LDA_ABSX()};
-        this.table[0xBE] = {name: "LDX_ABSY",  exec: () => this.OP_LDX_ABSY()};
-        this.table[0xD0] = {name: "BNE",       exec: () => this.OP_BNE()};
+        this.OP(0x00, "BRK", () => this.OP_BRK());
+        this.OP(0x01, "ORA_INDX", () => this.OP_ORA_INDX());
+        this.OP(0x05, "ORA_ZP", () => this.OP_ORA_ZP());
+        this.OP(0x06, "ASL_ZP", () => this.OP_ASL_ZP());
+        this.OP(0x08, "PHP", () => this.OP_PHP());
+        this.OP(0x0A, "ASL_ACC", () => this.OP_ASL_ACC());
+        this.OP(0xA0, "LDY_IMM", () => this.OP_LDY_IMM());
+        this.OP(0xA1, "LDA_INDX", () => this.OP_LDA_INDX());     
+        this.OP(0xA2, "LDX_IMM",() => this.OP_LDX_IMM());
+        this.OP(0xA4, "LDY_ZP", () => this.OP_LDY_ZP());
+        this.OP(0xA5, "LDA_ZP", () => this.OP_LDA_ZP());
+        this.OP(0xA6, "LDX_ZP", () => this.OP_LDX_ZP());
+        this.OP(0xA8, "TAY", () => this.OP_TAY());
+        this.OP(0xA9, "LDA_IMM", () => this.OP_LDA_IMM());
+        this.OP(0xAA, "TAX", () => this.OP_TAX());
+        this.OP(0xAC, "LDY_ABS", () => this.OP_LDY_ABS());
+        this.OP(0xAD, "LDA_ABS", () => this.OP_LDA_ABS());
+        this.OP(0xAE, "LDX_ABS", () => this.OP_LDX_ABS());    
+        this.OP(0xB1, "LDA_INDY", () => this.OP_LDA_INDY());
+        this.OP(0xB4, "LDY_ZPX", () => this.OP_LDY_ZPX());
+        this.OP(0xB5, "LDA_ZPX", () => this.OP_LDA_ZPX());        
+        this.OP(0xB6, "LDX_ZPY", () => this.OP_LDX_ZPY());
+        this.OP(0xB8, "CLV", () => this.OP_CLV());
+        this.OP(0xB9, "LDA_ABSY", () => this.OP_LDA_ABSY());
+        this.OP(0xBA, "TSX", () => this.OP_TSX());
+        this.OP(0xBC, "LDY_ABSX", () => this.OP_LDY_ABSX());
+        this.OP(0xBD, "LDA_ABSX", () => this.OP_LDA_ABSX());
+        this.OP(0xBE, "LDX_ABSY", () => this.OP_LDX_ABSY());
+        this.OP(0xD0, "BNE", () => this.OP_BNE());
     }
 
 
