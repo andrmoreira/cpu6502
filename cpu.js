@@ -25,8 +25,21 @@ export class CPU6502 {
     
     // --- Helpers ---
 
-    OP(code, name, fn) {
-        this.table[code] = {name,exec: fn};
+    op(code, name, cycles, modeFn, instFn) {
+        this.table[code] = {
+            name,
+            exec: () => {
+                // Exec with addressing mode
+                if (instFn) {
+                    const addr = modeFn.call(this);
+                    instFn.call(this, addr);
+                    return cycles;
+                } else {
+                    // Exec direct
+                    return modeFn.call(this);
+                }
+            }
+        };
     }
 
     updateZN(val) {
@@ -131,6 +144,44 @@ export class CPU6502 {
     }
 
 
+    // --- Base Instructions ---
+    
+    lda(addr) {
+        // loads a value in a, sets Z and N
+        this.A = this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+    ldx(addr) {
+        // loads x value in x, sets Z and N
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+    }
+    ldy(addr) {
+        // loads a value in y, sets Z and N
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+    }
+    eor(addr) {
+        // XORs A with the value, set Z and N
+        this.A ^= this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+    ora(addr) {
+        // ORs A with the value, set Z and N
+        this.A |= this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+    sta(addr) {
+        // stores a to a memory location
+        this.mem.writeb(addr, this.A);
+    }
+    and(addr) {
+        // ANDs A with the value, sets Z and N
+        this.A &= this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+
+
     // --- Instructions ---
 
     OP_UNKNOWN(opcode) {
@@ -159,22 +210,6 @@ export class CPU6502 {
         this.PC = (hi << 8) | lo;
         return 7;
     }
-    // 0x01: ORA (Indirect, X)
-    OP_ORA_INDX() {
-        // ORs A with the value, set Z and N
-        const addr = this.modeINDX();
-        this.A |= this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 6;
-    }
-    // 0x05: ORA Zero Page
-    OP_ORA_ZP() {
-        // ORs A with the value, set Z and N
-        const addr = this.modeZP();
-        this.A |= this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 3;
-    }
     // 0x06: ASL Zero Page
     OP_ASL_ZP() {
         // shifts a memory location left 1, set C, Z and N
@@ -193,14 +228,6 @@ export class CPU6502 {
         this.pushStack(this.getStatusFlags(true));
         return 3;
     }
-    // 0x09: ORA Immediate
-    OP_ORA_IMM() {
-        // ORs A with the value, set Z and N
-        const addr = this.modeIMM();
-        this.A |= this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 2;
-    }
     // 0x0A: ASL Accumulator
     OP_ASL_ACC() {
         // shifts A left 1, set C, Z and N
@@ -210,27 +237,11 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 2;
     }
-    // 0x0D: ORA Absolute
-    OP_ORA_ABS() {
-        // ORs A with the value, set Z and N
-        const addr = this.modeABS();
-        this.A |= this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 4;
-    }
     // 0x18: CLC
     OP_CLC() {
         // clear carry flag
         this.modeIMP();
         this.C=0;
-        return 2;
-    }
-    // 0x29: AND Immediate
-    OP_AND_IMM() {
-        // ANDs A with the value, set Z and N
-        const addr = this.modeIMM();
-        this.A &= this.mem.readb(addr);
-        this.updateZN(this.A);
         return 2;
     }
     // 0x38: SEC
@@ -240,25 +251,10 @@ export class CPU6502 {
         this.C=1;
         return 2;
     }
-    // 0x49: EOR Immediate
-    OP_EOR_IMM() {
-        // XORs A with the value, set Z and N
-        const addr = this.modeIMM();
-        this.A ^= this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 2;
-    }
     // 0x4C: JMP Absolute
     OP_JMP_ABS() {
         // jump to address
         this.PC = this.modeABS();
-        return 3;
-    }
-    // 0x85: STA Zero Page
-    OP_STA_ZP() {
-        // stores a to a memory location
-        const addr = this.modeZP();
-        this.mem.writeb(addr, this.A);
         return 3;
     }
     // 0x8A: TXA
@@ -269,62 +265,6 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 2;
     }
-    // 0x8D: STA Absolute
-    OP_STA_ABS() {
-        // stores a to a memory location
-        const addr = this.modeABS();
-        this.mem.writeb(addr, this.A);
-        return 4;
-    }
-    // 0xA0: LDY Immediate
-    OP_LDY_IMM() {
-        // loads a value in y, sets Z and N
-        const addr = this.modeIMM();
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-        return 2;
-    }
-    // 0xA1: LDA (Indirect, X)
-    OP_LDA_INDX() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeINDX();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 6;
-    }
-    // 0xA2: LDX Immediate
-    OP_LDX_IMM() {
-        // loads x value in x, sets Z and N
-        const addr = this.modeIMM();
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-        return 2;
-    }
-    // 0xA4: LDY Zero Page
-    OP_LDY_ZP() {
-        // loads a value in y, sets Z and N
-        const addr = this.modeZP();
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-        return 3;
-    }
-    // 0xA5: LDA Zero Page
-    OP_LDA_ZP() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeZP();
-        this.A = this.mem.readb(addr);
-        this.Z = this.A === 0?1:0;
-        this.N = (this.A & 0x80)?1:0;
-        return 3;
-    }
-    // 0xA6: LDX Zero Page
-    OP_LDX_ZP() {
-        // loads x value in x, sets Z and N
-        const addr = this.modeZP();
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-        return 3;
-    }
     // 0xA8 TAY
     OP_TAY() {
         // transfers a to y, sets Z and N
@@ -333,15 +273,6 @@ export class CPU6502 {
         this.updateZN(this.Y);
         return 2;
     }
-    // 0xA9: LDA Immediate
-    OP_LDA_IMM() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeIMM();
-        this.A = this.mem.readb(addr);
-        this.Z = this.A === 0?1:0;
-        this.N = (this.A & 0x80)?1:0;
-        return 2;
-    }
     // 0xAA: TAX
     OP_TAX() {
         // transfers a to x, sets Z and N
@@ -350,76 +281,13 @@ export class CPU6502 {
         this.updateZN(this.X);
         return 2;
     }
-    // 0xAC: LDY Absolute
-    OP_LDY_ABS() {
-    // loads a value in y, sets Z and N
-        const addr = this.modeABS();
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-        return 4;
-    }
-    // 0xAD: LDA Absolute
-    OP_LDA_ABS() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeABS();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 4;
-    }
-    // 0xAE: LDX Absolute
-    OP_LDX_ABS() {
-        // loads x value in x, sets Z and N
-        const addr = this.modeABS();
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-        return 4;
-    }
-    // 0xB1: LDA (Indirect), Y
-    OP_LDA_INDY() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeINDY();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 5;
-    }
-    // 0xB4: LDY Zero Page, X
-    OP_LDY_ZPX() {
-        // loads a value in y, sets Z and N
-        const addr = this.modeZPX();
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-        return 4;
-    }
-    // 0xB5: LDA Zero Page, X
-    OP_LDA_ZPX() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeZPX();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 4;
-    }
-    // 0xB6: LDX Zero Page, Y
-    OP_LDX_ZPY() {
-        // loads x value in x, sets Z and N
-        const addr = this.modeZPY();
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-        return 4;
-    }
+    
     // 0xB8: CLV
     OP_CLV() {
         // clear overflow flag
         this.modeIMP();
         this.V=0;
         return 2;
-    }
-    // 0xB9: LDA Absolute, Y
-    OP_LDA_ABSY() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeABSY();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 4;
     }
     // 0xBA: TSX
     OP_TSX() {
@@ -428,30 +296,6 @@ export class CPU6502 {
         this.X = this.SP;
         this.updateZN(this.X);
         return 2;
-    }
-    // 0xBC: LDY Absolute, X
-    OP_LDY_ABSX() {
-        // loads a value in y, sets Z and N
-        const addr = this.modeABSX();
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-        return 4;
-    }
-    // 0xBD: LDA Absolute, X
-    OP_LDA_ABSX() {
-        // loads a value in a, sets Z and N
-        const addr = this.modeABSX();
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-        return 4;
-    }
-    // 0xBE: LDX Absolute, Y
-    OP_LDX_ABSY() {
-        // loads x value in x, sets Z and N
-        const addr = this.modeABSY();
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-        return 4;
     }
     // 0xD0: BNE
     OP_BNE() {
@@ -470,46 +314,52 @@ export class CPU6502 {
     
     initTable() {
         this.table = new Array(256).fill(null);
-        this.OP(0x00, "BRK", () => this.OP_BRK());
-        this.OP(0x01, "ORA_INDX", () => this.OP_ORA_INDX());
-        this.OP(0x05, "ORA_ZP", () => this.OP_ORA_ZP());
-        this.OP(0x06, "ASL_ZP", () => this.OP_ASL_ZP());
-        this.OP(0x08, "PHP", () => this.OP_PHP());
-        this.OP(0x09, "ORA_IMM", () => this.OP_ORA_IMM());
-        this.OP(0x0A, "ASL_ACC", () => this.OP_ASL_ACC());
-        this.OP(0x0D, "ORA_ABS", () => this.OP_ORA_ABS());
-        this.OP(0x18, "CLC", () => this.OP_CLC());
-        this.OP(0x29, "AND_IMM", () => this.OP_AND_IMM());
-        this.OP(0x38, "SEC", () => this.OP_SEC());
-        this.OP(0x49, "EOR_IMM", () => this.OP_EOR_IMM());
-        this.OP(0x4C, "JMP_ABS", () => this.OP_JMP_ABS());
-        this.OP(0x85, "STA_ZP", () => this.OP_STA_ZP());
-        this.OP(0x8A, "TXA", () => this.OP_TXA());
-        this.OP(0x8D, "STA_ABS", () => this.OP_STA_ABS());
-        this.OP(0xA0, "LDY_IMM", () => this.OP_LDY_IMM());
-        this.OP(0xA1, "LDA_INDX", () => this.OP_LDA_INDX());     
-        this.OP(0xA2, "LDX_IMM",() => this.OP_LDX_IMM());
-        this.OP(0xA4, "LDY_ZP", () => this.OP_LDY_ZP());
-        this.OP(0xA5, "LDA_ZP", () => this.OP_LDA_ZP());
-        this.OP(0xA6, "LDX_ZP", () => this.OP_LDX_ZP());
-        this.OP(0xA8, "TAY", () => this.OP_TAY());
-        this.OP(0xA9, "LDA_IMM", () => this.OP_LDA_IMM());
-        this.OP(0xAA, "TAX", () => this.OP_TAX());
-        this.OP(0xAC, "LDY_ABS", () => this.OP_LDY_ABS());
-        this.OP(0xAD, "LDA_ABS", () => this.OP_LDA_ABS());
-        this.OP(0xAE, "LDX_ABS", () => this.OP_LDX_ABS());    
-        this.OP(0xB1, "LDA_INDY", () => this.OP_LDA_INDY());
-        this.OP(0xB4, "LDY_ZPX", () => this.OP_LDY_ZPX());
-        this.OP(0xB5, "LDA_ZPX", () => this.OP_LDA_ZPX());        
-        this.OP(0xB6, "LDX_ZPY", () => this.OP_LDX_ZPY());
-        this.OP(0xB8, "CLV", () => this.OP_CLV());
-        this.OP(0xB9, "LDA_ABSY", () => this.OP_LDA_ABSY());
-        this.OP(0xBA, "TSX", () => this.OP_TSX());
-        this.OP(0xBC, "LDY_ABSX", () => this.OP_LDY_ABSX());
-        this.OP(0xBD, "LDA_ABSX", () => this.OP_LDA_ABSX());
-        this.OP(0xBE, "LDX_ABSY", () => this.OP_LDX_ABSY());
-        this.OP(0xD0, "BNE", () => this.OP_BNE());
-    }
+        // --- LDA Instructions ---
+        this.op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
+        this.op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
+        this.op(0xB5, "LDA_ZPX", 4, this.modeZPX, this.lda);
+        this.op(0xAD, "LDA_ABS", 4, this.modeABS, this.lda);
+        this.op(0xBD, "LDA_ABSX", 4, this.modeABSX, this.lda);
+        this.op(0xB9, "LDA_ABSY", 4, this.modeABSY, this.lda);
+        this.op(0xA1, "LDA_INDX", 6, this.modeINDX, this.lda);
+        this.op(0xB1, "LDA_INDY", 5, this.modeINDY, this.lda);
+        // --- LDX Instructions ---
+        this.op(0xA2, "LDX_IMM", 2, this.modeIMM, this.ldx);
+        this.op(0xA6, "LDX_ZP", 3, this.modeZP, this.ldx);
+        this.op(0xB6, "LDX_ZPY", 4, this.modeZPY, this.ldx);
+        this.op(0xAE, "LDX_ABS", 4, this.modeABS, this.ldx);
+        this.op(0xBE, "LDX_ABSY", 4, this.modeABSY, this.ldx);
+        // --- LDY Instructions ---
+        this.op(0xA0, "LDY_IMM", 2, this.modeIMM, this.ldy);
+        this.op(0xA4, "LDY_ZP", 3, this.modeZP, this.ldy);
+        this.op(0xB4, "LDY_ZPX", 4, this.modeZPX, this.ldy);
+        this.op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
+        this.op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
+        // --- EOR Instructions ---
+        this.op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
+        // --- ORA Instructions ---
+        this.op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
+        this.op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
+        this.op(0x0D, "ORA_ABS", 4, this.modeABS, this.ora);
+        this.op(0x01, "ORA_INDX", 6, this.modeINDX, this.ora);
+        // --- STA Instructions ---
+        this.op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
+        this.op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
+        // --- Other Instructions ---
+        this.op(0x00, "BRK", 7, () => this.OP_BRK());
+        this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
+        this.op(0x08, "PHP", 3, () => this.OP_PHP());
+        this.op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
+        this.op(0x18, "CLC", 2, () => this.OP_CLC());
+        this.op(0x38, "SEC", 2, () => this.OP_SEC());
+        this.op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
+        this.op(0x8A, "TXA", 2, () => this.OP_TXA());
+        this.op(0xA8, "TAY", 2, () => this.OP_TAY());
+        this.op(0xAA, "TAX", 2, () => this.OP_TAX());
+        this.op(0xB8, "CLV", 2, () => this.OP_CLV());
+        this.op(0xBA, "TSX", 2, () => this.OP_TSX());
+        this.op(0xD0, "BNE", 2, () => this.OP_BNE());
+    }
 
 
     // --- CPU Control ---
