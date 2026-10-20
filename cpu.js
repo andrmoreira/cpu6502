@@ -193,12 +193,36 @@ export class CPU6502 {
         this.pushStack(this.getStatusFlags(true));
         return 3;
     }
+    // 0x09: ORA Immediate
+    OP_ORA_IMM() {
+        // ORs A with the value, set Z and N
+        const addr = this.modeIMM();
+        this.A |= this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 2;
+    }
     // 0x0A: ASL Accumulator
     OP_ASL_ACC() {
         // shifts A left 1, set C, Z and N
         this.modeIMP();
         this.C = (this.A & 0x80)?1:0;
         this.A = (this.A << 1) & 0xFF;
+        this.updateZN(this.A);
+        return 2;
+    }
+    // 0x0D: ORA Absolute
+    OP_ORA_ABS() {
+        // ORs A with the value, set Z and N
+        const addr = this.modeABS();
+        this.A |= this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 4;
+    }
+    // 0x8A: TXA
+    OP_TXA() {
+        // transfers x to a, sets Z and N
+        this.modeIMP();
+        this.A = this.X;
         this.updateZN(this.A);
         return 2;
     }
@@ -278,7 +302,7 @@ export class CPU6502 {
     }
     // 0xAC: LDY Absolute
     OP_LDY_ABS() {
-        // loads a value in y, sets Z and N
+    // loads a value in y, sets Z and N
         const addr = this.modeABS();
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
@@ -401,7 +425,10 @@ export class CPU6502 {
         this.OP(0x05, "ORA_ZP", () => this.OP_ORA_ZP());
         this.OP(0x06, "ASL_ZP", () => this.OP_ASL_ZP());
         this.OP(0x08, "PHP", () => this.OP_PHP());
+        this.OP(0x09, "ORA_IMM", () => this.OP_ORA_IMM());
         this.OP(0x0A, "ASL_ACC", () => this.OP_ASL_ACC());
+        this.OP(0x0D, "ORA_ABS", () => this.OP_ORA_ABS());
+        this.OP(0x8A, "TXA", () => this.OP_TXA());
         this.OP(0xA0, "LDY_IMM", () => this.OP_LDY_IMM());
         this.OP(0xA1, "LDA_INDX", () => this.OP_LDA_INDX());     
         this.OP(0xA2, "LDX_IMM",() => this.OP_LDX_IMM());
