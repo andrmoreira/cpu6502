@@ -218,6 +218,19 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 4;
     }
+    // 0x4C: JMP Absolute
+    OP_JMP_ABS() {
+        // jump to address
+        this.PC = this.modeABS();
+        return 3;
+    }
+    // 0x85: STA Zero Page
+    OP_STA_ZP() {
+        // stores a to a memory location
+        const addr = this.modeZP();
+        this.mem.writeb(addr, this.A);
+        return 3;
+    }
     // 0x8A: TXA
     OP_TXA() {
         // transfers x to a, sets Z and N
@@ -225,6 +238,13 @@ export class CPU6502 {
         this.A = this.X;
         this.updateZN(this.A);
         return 2;
+    }
+    // 0x8D: STA Absolute
+    OP_STA_ABS() {
+        // stores a to a memory location
+        const addr = this.modeABS();
+        this.mem.writeb(addr, this.A);
+        return 4;
     }
     // 0xA0: LDY Immediate
     OP_LDY_IMM() {
@@ -428,7 +448,10 @@ export class CPU6502 {
         this.OP(0x09, "ORA_IMM", () => this.OP_ORA_IMM());
         this.OP(0x0A, "ASL_ACC", () => this.OP_ASL_ACC());
         this.OP(0x0D, "ORA_ABS", () => this.OP_ORA_ABS());
+        this.OP(0x4C, "JMP_ABS", () => this.OP_JMP_ABS());
+        this.OP(0x85, "STA_ZP", () => this.OP_STA_ZP());
         this.OP(0x8A, "TXA", () => this.OP_TXA());
+        this.OP(0x8D, "STA_ABS", () => this.OP_STA_ABS());
         this.OP(0xA0, "LDY_IMM", () => this.OP_LDY_IMM());
         this.OP(0xA1, "LDA_INDX", () => this.OP_LDA_INDX());     
         this.OP(0xA2, "LDX_IMM",() => this.OP_LDX_IMM());
