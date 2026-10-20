@@ -218,6 +218,36 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 4;
     }
+    // 0x18: CLC
+    OP_CLC() {
+        // clear carry flag
+        this.modeIMP();
+        this.C=0;
+        return 2;
+    }
+    // 0x29: AND Immediate
+    OP_AND_IMM() {
+        // ANDs A with the value, set Z and N
+        const addr = this.modeIMM();
+        this.A &= this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 2;
+    }
+    // 0x38: SEC
+    OP_SEC() {
+        // set carry flag
+        this.modeIMP();
+        this.C=1;
+        return 2;
+    }
+    // 0x49: EOR Immediate
+    OP_EOR_IMM() {
+        // XORs A with the value, set Z and N
+        const addr = this.modeIMM();
+        this.A ^= this.mem.readb(addr);
+        this.updateZN(this.A);
+        return 2;
+    }
     // 0x4C: JMP Absolute
     OP_JMP_ABS() {
         // jump to address
@@ -448,6 +478,10 @@ export class CPU6502 {
         this.OP(0x09, "ORA_IMM", () => this.OP_ORA_IMM());
         this.OP(0x0A, "ASL_ACC", () => this.OP_ASL_ACC());
         this.OP(0x0D, "ORA_ABS", () => this.OP_ORA_ABS());
+        this.OP(0x18, "CLC", () => this.OP_CLC());
+        this.OP(0x29, "AND_IMM", () => this.OP_AND_IMM());
+        this.OP(0x38, "SEC", () => this.OP_SEC());
+        this.OP(0x49, "EOR_IMM", () => this.OP_EOR_IMM());
         this.OP(0x4C, "JMP_ABS", () => this.OP_JMP_ABS());
         this.OP(0x85, "STA_ZP", () => this.OP_STA_ZP());
         this.OP(0x8A, "TXA", () => this.OP_TXA());
