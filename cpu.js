@@ -20,7 +20,9 @@ export class CPU6502 {
 
         this.cycles = 0;
         this.extraCycles = 0;
-        this.initTable();
+        
+        this.initTable();
+        this.cpuInit();
     }
     
     
@@ -219,6 +221,16 @@ export class CPU6502 {
         const result = (this.Y - val) & 0xFF;
         this.C = (this.Y >= val)?1:0;
         this.updateZN(result);
+    }
+    adc(addr) {
+        // Adds the value + C to A, sets C, V, Z and N
+        const val = this.mem.readb(addr);
+        const sum = this.A + val + this.C;
+        this.C = (sum > 0xFF)?1:0;
+        // Set overflow flag if result sign differs from both inputs due to signed overflow
+        this.V = (~(this.A ^ val) & (this.A ^ sum) & 0x80) & 0xFFFF;
+        this.A = sum & 0xFF;
+        this.updateZN(this.A);
     }
 
 
@@ -431,6 +443,15 @@ export class CPU6502 {
         this.op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
         this.op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
         this.op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
+        // --- ADC Instructions ---
+        this.op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
+        this.op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
+        this.op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
+        this.op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
+        this.op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
+        this.op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
+        this.op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
+        this.op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
         // --- Other Instructions ---
         this.op(0x00, "BRK", 7, () => this.OP_BRK());
         this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
