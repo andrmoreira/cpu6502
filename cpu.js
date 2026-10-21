@@ -374,6 +374,14 @@ export class CPU6502 {
         this.op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
         this.op(0x9D, "STA_ABSX", 5, this.modeABSX, this.sta);
         this.op(0x99, "STA_ABSY", 5, this.modeABSY, this.sta);
+        // --- STX Instructions ---
+        this.op(0x86, "STX_ZP", 3, this.modeZP, this.stx);
+        this.op(0x96, "STX_ZPX", 4, this.modeZPX, this.stx);
+        this.op(0x8E, "STX_ABS", 4, this.modeABS, this.stx);
+        // --- STY Instructions ---
+        this.op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
+        this.op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
+        this.op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
         // --- Other Instructions ---
         this.op(0x00, "BRK", 7, () => this.OP_BRK());
         this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
