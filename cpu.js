@@ -336,7 +336,14 @@ export class CPU6502 {
         this.op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
         this.op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
         // --- EOR Instructions ---
+        this.op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
+        this.op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
         this.op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
+        this.op(0x4D, "EOR_ABS", 4, this.modeABS, this.eor);
+        this.op(0x51, "EOR_INDY", 5, this.modeINDY, this.eor);
+        this.op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
+        this.op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
+        this.op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
         // --- ORA Instructions ---
         this.op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
         this.op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
