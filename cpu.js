@@ -188,6 +188,27 @@ export class CPU6502 {
         // stores y to y memory location
         this.mem.writeb(addr, this.Y);
     }
+    cmp(addr) {
+        // sets C, Z and N according to what A - value would do
+        const val = this.mem.readb(addr);
+        const result = (this.A - val) & 0xFF;
+        this.C = (this.A >= val)?1:0;
+        this.updateZN(result);
+    }
+    cpx(addr) {
+        // sets C, Z and N according to what X - value would do
+        const val = this.mem.readb(addr);
+        const result = (this.X - val) & 0xFF;
+        this.C = (this.X >= val)?1:0;
+        this.updateZN(result);
+    }
+    cpy(addr) {
+        // sets C, Z and N according to what Y - value would do
+        const val = this.mem.readb(addr);
+        const result = (this.Y - val) & 0xFF;
+        this.C = (this.Y >= val)?1:0;
+        this.updateZN(result);
+    }
 
 
     // --- Instructions ---
@@ -382,6 +403,23 @@ export class CPU6502 {
         this.op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
         this.op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
         this.op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
+        // --- CMP Instructions ---
+        this.op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
+        this.op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
+        this.op(0xD5, "CMP_ZPX", 4, this.modeZPX, this.cmp);
+        this.op(0xCD, "CMP_ABS", 4, this.modeABS, this.cmp);
+        this.op(0xDD, "CMP_ABSX", 4, this.modeABSX, this.cmp);
+        this.op(0xD9, "CMP_ABSY", 4, this.modeABSY, this.cmp);
+        this.op(0xC1, "CMP_INDX", 6, this.modeINDX, this.cmp);
+        this.op(0xD1, "CMP_INDY", 5, this.modeINDY, this.cmp);
+        // --- CPX Instructions ---
+        this.op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
+        this.op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
+        this.op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
+        // --- CPY Instructions ---
+        this.op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
+        this.op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
+        this.op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
         // --- Other Instructions ---
         this.op(0x00, "BRK", 7, () => this.OP_BRK());
         this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
