@@ -19,8 +19,9 @@ export class CPU6502 {
         this.N = 0;
 
         this.cycles = 0;
-        this.initTable();
-    }
+        this.extraCycles = 0;
+        this.initTable();
+    }
     
     
     // --- Helpers ---
@@ -29,11 +30,12 @@ export class CPU6502 {
         this.table[code] = {
             name,
             exec: () => {
+                this.extraCycles=0;
                 // Exec with addressing mode
                 if (instFn) {
                     const addr = modeFn.call(this);
                     instFn.call(this, addr);
-                    return cycles;
+                    return cycles + this.extraCycles;
                 } else {
                     // Exec direct
                     return modeFn.call(this);
@@ -110,7 +112,10 @@ export class CPU6502 {
         const lo = this.mem.readb(zp);
         const hi = this.mem.readb((zp + 1) & 0xFF);
         const base = (hi << 8) | lo;
-        return (base + this.Y) & 0xFFFF;
+        const finalAddr = (base + this.Y) & 0xFFFF;
+        if (hi !== (finalAddr >> 8))
+            this.extraCycles=1;
+        return finalAddr;
     }
     // Absolute (16-bit)
     modeABS() {
@@ -125,7 +130,10 @@ export class CPU6502 {
         const hi = this.mem.readb(this.PC+1);
         this.PC += 2;
         const base = (hi << 8) | lo;
-        return (base + this.X) & 0xFFFF;
+        const finalAddr = (base + this.X) & 0xFFFF;
+        if (hi !== (finalAddr >> 8))
+            this.extraCycles=1;
+        return finalAddr;
     }
     // Absolute, Y
     modeABSY() {
@@ -133,7 +141,10 @@ export class CPU6502 {
         const hi = this.mem.readb(this.PC+1);
         this.PC += 2;
         const base = (hi << 8) | lo;
-        return (base + this.Y) & 0xFFFF;
+        const finalAddr = (base + this.Y) & 0xFFFF;
+        if (hi !== (finalAddr >> 8))
+            this.extraCycles=1;
+        return finalAddr;
     }
     // Relative
     modeREL() {
