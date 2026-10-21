@@ -171,14 +171,22 @@ export class CPU6502 {
         this.A |= this.mem.readb(addr);
         this.updateZN(this.A);
     }
-    sta(addr) {
-        // stores a to a memory location
-        this.mem.writeb(addr, this.A);
-    }
     and(addr) {
         // ANDs A with the value, sets Z and N
         this.A &= this.mem.readb(addr);
         this.updateZN(this.A);
+    }
+    sta(addr) {
+        // stores a to a memory location
+        this.mem.writeb(addr, this.A);
+    }
+    stx(addr) {
+        // stores x to x memory location
+        this.mem.writeb(addr, this.X);
+    }
+    sty(addr) {
+        // stores y to y memory location
+        this.mem.writeb(addr, this.Y);
     }
 
 
