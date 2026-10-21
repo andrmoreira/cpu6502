@@ -359,8 +359,13 @@ export class CPU6502 {
         this.op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
         this.op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
         // --- STA Instructions ---
+        this.op(0x81, "STA_INDX", 6, this.modeINDX, this.sta);
+        this.op(0x91, "STA_INDY", 5, this.modeINDY, this.sta);
         this.op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
+        this.op(0x95, "STA_ZPX", 4, this.modeZPX, this.sta);
         this.op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
+        this.op(0x9D, "STA_ABSX", 5, this.modeABSX, this.sta);
+        this.op(0x99, "STA_ABSY", 5, this.modeABSY, this.sta);
         // --- Other Instructions ---
         this.op(0x00, "BRK", 7, () => this.OP_BRK());
         this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
