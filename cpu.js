@@ -308,6 +308,11 @@ export class CPU6502 {
         }
         return cycles;
     }
+    // 0xEA: NOP
+    OP_NOP() {
+        // No Operation
+        return 2;
+    }
 
 
     // --- Opcode Table ---
@@ -349,6 +354,10 @@ export class CPU6502 {
         this.op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
         this.op(0x0D, "ORA_ABS", 4, this.modeABS, this.ora);
         this.op(0x01, "ORA_INDX", 6, this.modeINDX, this.ora);
+        this.op(0x11, "ORA_INDY", 5, this.modeINDY, this.ora);
+        this.op(0x15, "ORA_ZPX", 4, this.modeZPX, this.ora);
+        this.op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
+        this.op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
         // --- STA Instructions ---
         this.op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
         this.op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
@@ -366,6 +375,7 @@ export class CPU6502 {
         this.op(0xB8, "CLV", 2, () => this.OP_CLV());
         this.op(0xBA, "TSX", 2, () => this.OP_TSX());
         this.op(0xD0, "BNE", 2, () => this.OP_BNE());
+        this.op(0xEA, "NOP", 2, () => this.OP_NOP());
     }
 
 
