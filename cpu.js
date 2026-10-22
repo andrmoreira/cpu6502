@@ -292,6 +292,13 @@ export class CPU6502 {
         this.C=1;
         return 2;
     }
+    // 0x78: SEI
+    OP_SEI() {
+        // set interrupt flag
+        this.modeIMP();
+        this.I=1;
+        return 2;
+    }
     // 0x4C: JMP Absolute
     OP_JMP_ABS() {
         // jump to address
@@ -304,6 +311,13 @@ export class CPU6502 {
         this.modeIMP();
         this.A = this.X;
         this.updateZN(this.A);
+        return 2;
+    }
+    // 0x9A: TXS
+    OP_TXS() {
+        // transfers x to the stack pointer
+        this.modeIMP();
+        this.SP = this.X;
         return 2;
     }
     // 0xA8 TAY
@@ -322,7 +336,6 @@ export class CPU6502 {
         this.updateZN(this.X);
         return 2;
     }
-    
     // 0xB8: CLV
     OP_CLV() {
         // clear overflow flag
@@ -352,6 +365,13 @@ export class CPU6502 {
     // 0xEA: NOP
     OP_NOP() {
         // No Operation
+        return 2;
+    }
+    // 0xF8: SED
+    OP_SED() {
+        // set decimal flag
+        this.modeIMP();
+        this.D=1;
         return 2;
     }
 
@@ -395,13 +415,16 @@ export class CPU6502 {
         op(0x18, "CLC", 2, () => this.OP_CLC());
         op(0x38, "SEC", 2, () => this.OP_SEC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
+        op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x8A, "TXA", 2, () => this.OP_TXA());
+        op(0x9A, "TXS", 2, () => this.OP_TXS());
         op(0xA8, "TAY", 2, () => this.OP_TAY());
         op(0xAA, "TAX", 2, () => this.OP_TAX());
         op(0xB8, "CLV", 2, () => this.OP_CLV());
         op(0xBA, "TSX", 2, () => this.OP_TSX());
         op(0xD0, "BNE", 2, () => this.OP_BNE());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
+        op(0xF8, "SED", 2, () => this.OP_SED());
         // --- LDA Instructions ---
         op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
         op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
@@ -520,14 +543,7 @@ export class CPU6502 {
 
     cpuStep() {
         const op = this.mem.readb(this.PC++);
-        const instruction = this.table[op];
-        
-        if (!instruction) {
-            const cycles = this.OP_UNKNOWN(op);
-            this.cycles += cycles;
-            return cycles;
-        }
-    
+        const instruction = this.table[op]; 
         const cycles = instruction.exec();
         this.cycles += cycles;
         return cycles;
