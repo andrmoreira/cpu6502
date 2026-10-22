@@ -369,7 +369,7 @@ export class CPU6502 {
             };
         }
         
-        const op = (code, name, cycles, modeFn, instFn) {
+        const op = (code, name, cycles, modeFn, instFn) => {
             this.table[code] = {
                 name,
                 exec: () => {
