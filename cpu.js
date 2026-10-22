@@ -232,6 +232,16 @@ export class CPU6502 {
         this.A = sum & 0xFF;
         this.updateZN(this.A);
     }
+    sbc(addr) {
+        // subtracts the value + !C from A, set C, V, Z and N
+        const val = this.mem.readb(addr);
+        const result = this.A - val - (1 - this.C);
+        this.C = (result >= 0)?1:0;
+        // Set overflow flag if signed overflow occurs during subtraction
+        this.V = ((this.A ^ val) & (this.A ^ result) & 0x80)?1:0;
+        this.A = result & 0xFF;
+        this.updateZN(this.A);
+    }
 
 
     // --- Instructions ---
@@ -452,6 +462,15 @@ export class CPU6502 {
         this.op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
         this.op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
         this.op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
+        // --- SBC Instructions ---
+        this.op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
+        this.op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
+        this.op(0xF5, "SBC_ZPX", 4, this.modeZPX, this.sbc);
+        this.op(0xED, "SBC_ABS", 4, this.modeABS, this.sbc);
+        this.op(0xFD, "SBC_ABSX", 4, this.modeABSX, this.sbc);
+        this.op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
+        this.op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
+        this.op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
         // --- Other Instructions ---
         this.op(0x00, "BRK", 7, () => this.OP_BRK());
         this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
