@@ -28,34 +28,14 @@ export class CPU6502 {
     
     // --- Helpers ---
 
-    op(code, name, cycles, modeFn, instFn) {
-        this.table[code] = {
-            name,
-            exec: () => {
-                this.extraCycles=0;
-                // Exec with addressing mode
-                if (instFn) {
-                    const addr = modeFn.call(this);
-                    instFn.call(this, addr);
-                    return cycles + this.extraCycles;
-                } else {
-                    // Exec direct
-                    return modeFn.call(this);
-                }
-            }
-        };
-    }
-
     updateZN(val) {
         this.Z = (val === 0)?1:0;
         this.N = (val & 0x80)?1:0;
     }
-
     pushStack(val) {
         this.mem.writeb(0x0100 + this.SP, val & 0xFF);
         this.SP = (this.SP - 1) & 0xFF;
     }
-
     getStatusFlags(breakFlag=false) {
         let p=0;
         p |= (this.N << 7);
@@ -258,7 +238,6 @@ export class CPU6502 {
         console.log(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
         return 2;
     }
-
     // 0x00: BRK
     OP_BRK() {
         // break to irq handler
@@ -380,112 +359,139 @@ export class CPU6502 {
     // --- Opcode Table ---
     
     initTable() {
-        this.table = new Array(256).fill(null);
-        // --- LDA Instructions ---
-        this.op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
-        this.op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
-        this.op(0xB5, "LDA_ZPX", 4, this.modeZPX, this.lda);
-        this.op(0xAD, "LDA_ABS", 4, this.modeABS, this.lda);
-        this.op(0xBD, "LDA_ABSX", 4, this.modeABSX, this.lda);
-        this.op(0xB9, "LDA_ABSY", 4, this.modeABSY, this.lda);
-        this.op(0xA1, "LDA_INDX", 6, this.modeINDX, this.lda);
-        this.op(0xB1, "LDA_INDY", 5, this.modeINDY, this.lda);
-        // --- LDX Instructions ---
-        this.op(0xA2, "LDX_IMM", 2, this.modeIMM, this.ldx);
-        this.op(0xA6, "LDX_ZP", 3, this.modeZP, this.ldx);
-        this.op(0xB6, "LDX_ZPY", 4, this.modeZPY, this.ldx);
-        this.op(0xAE, "LDX_ABS", 4, this.modeABS, this.ldx);
-        this.op(0xBE, "LDX_ABSY", 4, this.modeABSY, this.ldx);
-        // --- LDY Instructions ---
-        this.op(0xA0, "LDY_IMM", 2, this.modeIMM, this.ldy);
-        this.op(0xA4, "LDY_ZP", 3, this.modeZP, this.ldy);
-        this.op(0xB4, "LDY_ZPX", 4, this.modeZPX, this.ldy);
-        this.op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
-        this.op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
-        // --- EOR Instructions ---
-        this.op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
-        this.op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
-        this.op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
-        this.op(0x4D, "EOR_ABS", 4, this.modeABS, this.eor);
-        this.op(0x51, "EOR_INDY", 5, this.modeINDY, this.eor);
-        this.op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
-        this.op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
-        this.op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
-        // --- ORA Instructions ---
-        this.op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
-        this.op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
-        this.op(0x0D, "ORA_ABS", 4, this.modeABS, this.ora);
-        this.op(0x01, "ORA_INDX", 6, this.modeINDX, this.ora);
-        this.op(0x11, "ORA_INDY", 5, this.modeINDY, this.ora);
-        this.op(0x15, "ORA_ZPX", 4, this.modeZPX, this.ora);
-        this.op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
-        this.op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
-        // --- STA Instructions ---
-        this.op(0x81, "STA_INDX", 6, this.modeINDX, this.sta);
-        this.op(0x91, "STA_INDY", 5, this.modeINDY, this.sta);
-        this.op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
-        this.op(0x95, "STA_ZPX", 4, this.modeZPX, this.sta);
-        this.op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
-        this.op(0x9D, "STA_ABSX", 5, this.modeABSX, this.sta);
-        this.op(0x99, "STA_ABSY", 5, this.modeABSY, this.sta);
-        // --- STX Instructions ---
-        this.op(0x86, "STX_ZP", 3, this.modeZP, this.stx);
-        this.op(0x96, "STX_ZPX", 4, this.modeZPX, this.stx);
-        this.op(0x8E, "STX_ABS", 4, this.modeABS, this.stx);
-        // --- STY Instructions ---
-        this.op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
-        this.op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
-        this.op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
-        // --- CMP Instructions ---
-        this.op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
-        this.op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
-        this.op(0xD5, "CMP_ZPX", 4, this.modeZPX, this.cmp);
-        this.op(0xCD, "CMP_ABS", 4, this.modeABS, this.cmp);
-        this.op(0xDD, "CMP_ABSX", 4, this.modeABSX, this.cmp);
-        this.op(0xD9, "CMP_ABSY", 4, this.modeABSY, this.cmp);
-        this.op(0xC1, "CMP_INDX", 6, this.modeINDX, this.cmp);
-        this.op(0xD1, "CMP_INDY", 5, this.modeINDY, this.cmp);
-        // --- CPX Instructions ---
-        this.op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
-        this.op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
-        this.op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
-        // --- CPY Instructions ---
-        this.op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
-        this.op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
-        this.op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
-        // --- ADC Instructions ---
-        this.op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
-        this.op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
-        this.op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
-        this.op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
-        this.op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
-        this.op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
-        this.op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
-        this.op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
-        // --- SBC Instructions ---
-        this.op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
-        this.op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
-        this.op(0xF5, "SBC_ZPX", 4, this.modeZPX, this.sbc);
-        this.op(0xED, "SBC_ABS", 4, this.modeABS, this.sbc);
-        this.op(0xFD, "SBC_ABSX", 4, this.modeABSX, this.sbc);
-        this.op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
-        this.op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
-        this.op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
+        this.table = new Array(256);
+
+        for (let i=0; i<256; i++) {
+            this.table[i] = {
+                name: "unknown",
+                cycles: 2,
+                exec: (op=i) => this.OP_UNKNOWN(op)
+            };
+        }
+        
+        const op = (code, name, cycles, modeFn, instFn) {
+            this.table[code] = {
+                name,
+                exec: () => {
+                    this.extraCycles=0;
+                    // Exec with addressing mode
+                    if (instFn) {
+                        const addr = modeFn.call(this);
+                        instFn.call(this, addr);
+                        return cycles + this.extraCycles;
+                    } else {
+                        // Exec direct
+                        return modeFn.call(this);
+                    }
+                }
+            };
+        }
+        
         // --- Other Instructions ---
-        this.op(0x00, "BRK", 7, () => this.OP_BRK());
-        this.op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
-        this.op(0x08, "PHP", 3, () => this.OP_PHP());
-        this.op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
-        this.op(0x18, "CLC", 2, () => this.OP_CLC());
-        this.op(0x38, "SEC", 2, () => this.OP_SEC());
-        this.op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
-        this.op(0x8A, "TXA", 2, () => this.OP_TXA());
-        this.op(0xA8, "TAY", 2, () => this.OP_TAY());
-        this.op(0xAA, "TAX", 2, () => this.OP_TAX());
-        this.op(0xB8, "CLV", 2, () => this.OP_CLV());
-        this.op(0xBA, "TSX", 2, () => this.OP_TSX());
-        this.op(0xD0, "BNE", 2, () => this.OP_BNE());
-        this.op(0xEA, "NOP", 2, () => this.OP_NOP());
+        op(0x00, "BRK", 7, () => this.OP_BRK());
+        op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
+        op(0x08, "PHP", 3, () => this.OP_PHP());
+        op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
+        op(0x18, "CLC", 2, () => this.OP_CLC());
+        op(0x38, "SEC", 2, () => this.OP_SEC());
+        op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
+        op(0x8A, "TXA", 2, () => this.OP_TXA());
+        op(0xA8, "TAY", 2, () => this.OP_TAY());
+        op(0xAA, "TAX", 2, () => this.OP_TAX());
+        op(0xB8, "CLV", 2, () => this.OP_CLV());
+        op(0xBA, "TSX", 2, () => this.OP_TSX());
+        op(0xD0, "BNE", 2, () => this.OP_BNE());
+        op(0xEA, "NOP", 2, () => this.OP_NOP());
+        // --- LDA Instructions ---
+        op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
+        op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
+        op(0xB5, "LDA_ZPX", 4, this.modeZPX, this.lda);
+        op(0xAD, "LDA_ABS", 4, this.modeABS, this.lda);
+        op(0xBD, "LDA_ABSX", 4, this.modeABSX, this.lda);
+        op(0xB9, "LDA_ABSY", 4, this.modeABSY, this.lda);
+        op(0xA1, "LDA_INDX", 6, this.modeINDX, this.lda);
+        op(0xB1, "LDA_INDY", 5, this.modeINDY, this.lda);
+        // --- LDX Instructions ---
+        op(0xA2, "LDX_IMM", 2, this.modeIMM, this.ldx);
+        op(0xA6, "LDX_ZP", 3, this.modeZP, this.ldx);
+        op(0xB6, "LDX_ZPY", 4, this.modeZPY, this.ldx);
+        op(0xAE, "LDX_ABS", 4, this.modeABS, this.ldx);
+        op(0xBE, "LDX_ABSY", 4, this.modeABSY, this.ldx);
+        // --- LDY Instructions ---
+        op(0xA0, "LDY_IMM", 2, this.modeIMM, this.ldy);
+        op(0xA4, "LDY_ZP", 3, this.modeZP, this.ldy);
+        op(0xB4, "LDY_ZPX", 4, this.modeZPX, this.ldy);
+        op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
+        op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
+        // --- EOR Instructions ---
+        op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
+        op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
+        op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
+        op(0x4D, "EOR_ABS", 4, this.modeABS, this.eor);
+        op(0x51, "EOR_INDY", 5, this.modeINDY, this.eor);
+        op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
+        op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
+        op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
+        // --- ORA Instructions ---
+        op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
+        op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
+        op(0x0D, "ORA_ABS", 4, this.modeABS, this.ora);
+        op(0x01, "ORA_INDX", 6, this.modeINDX, this.ora);
+        op(0x11, "ORA_INDY", 5, this.modeINDY, this.ora);
+        op(0x15, "ORA_ZPX", 4, this.modeZPX, this.ora);
+        op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
+        op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
+        // --- STA Instructions ---
+        op(0x81, "STA_INDX", 6, this.modeINDX, this.sta);
+        op(0x91, "STA_INDY", 5, this.modeINDY, this.sta);
+        op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
+        op(0x95, "STA_ZPX", 4, this.modeZPX, this.sta);
+        op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
+        op(0x9D, "STA_ABSX", 5, this.modeABSX, this.sta);
+        op(0x99, "STA_ABSY", 5, this.modeABSY, this.sta);
+        // --- STX Instructions ---
+        op(0x86, "STX_ZP", 3, this.modeZP, this.stx);
+        op(0x96, "STX_ZPX", 4, this.modeZPX, this.stx);
+        op(0x8E, "STX_ABS", 4, this.modeABS, this.stx);
+        // --- STY Instructions ---
+        op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
+        op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
+        op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
+        // --- CMP Instructions ---
+        op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
+        op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
+        op(0xD5, "CMP_ZPX", 4, this.modeZPX, this.cmp);
+        op(0xCD, "CMP_ABS", 4, this.modeABS, this.cmp);
+        op(0xDD, "CMP_ABSX", 4, this.modeABSX, this.cmp);
+        op(0xD9, "CMP_ABSY", 4, this.modeABSY, this.cmp);
+        op(0xC1, "CMP_INDX", 6, this.modeINDX, this.cmp);
+        op(0xD1, "CMP_INDY", 5, this.modeINDY, this.cmp);
+        // --- CPX Instructions ---
+        op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
+        op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
+        op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
+        // --- CPY Instructions ---
+        op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
+        op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
+        op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
+        // --- ADC Instructions ---
+        op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
+        op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
+        op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
+        op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
+        op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
+        op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
+        op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
+        op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
+        // --- SBC Instructions ---
+        op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
+        op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
+        op(0xF5, "SBC_ZPX", 4, this.modeZPX, this.sbc);
+        op(0xED, "SBC_ABS", 4, this.modeABS, this.sbc);
+        op(0xFD, "SBC_ABSX", 4, this.modeABSX, this.sbc);
+        op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
+        op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
+        op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
     }
 
 
