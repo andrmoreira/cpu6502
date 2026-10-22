@@ -6,18 +6,19 @@ export class CPU6502 {
         this.A=0;
         this.X=0;
         this.Y=0;
-        this.SP=0xFD;
+        this.SP=0xFD; // stack pointer defaults to 0xFD
         this.PC=0;
 
         // Flags
         this.C=0;
         this.X=0;
-        this.I=1;
-        this.D=0;
+        this.I=1; // set interrupt disable flag
+        this.D=0; // clear decimal mode
         this.B=0;
         this.V=0;
         this.N=0;
 
+        // cycles left
         this.cycles=0;
         this.extraCycles=0;
         
@@ -236,6 +237,7 @@ export class CPU6502 {
         this.A &= this.mem.readb(addr);
         this.updateZN(this.A);
     }
+
 
     // --- Instructions ---
 
@@ -540,19 +542,25 @@ export class CPU6502 {
     }
 
     cpuReset() {
-        this.PC=this.mem.readw(0xFFFC);
+        // read the reset vector into PC
+        if (typeof this.mem.readw === 'function') {
+            this.PC=this.mem.readw(0xFFFC);
+        } else {
+            this.PC=this.mem.readb(0xFFFC) | (this.mem.readb(0xFFFD) << 8);
+        }
+        
         this.A=0;
         this.X=0;
         this.Y=0;
         this.SP=0xFD;
-        this.C=0; 
+        this.C=0; 
         this.Z=0; 
         this.I=1;
         this.D=0; 
         this.B=0; 
         this.V=0; 
         this.N=0;
-        this.cycles=0;
+        this.cycles=7;
     }
 
     cpuStep() {
