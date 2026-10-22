@@ -1,25 +1,25 @@
 export class CPU6502 {
     constructor(memory) {
-        this.mem = memory;
+        this.mem=memory;
 
         // Registers
-        this.A = 0;
-        this.X = 0;
-        this.Y = 0;
-        this.SP = 0xFD;
-        this.PC = 0;
+        this.A=0;
+        this.X=0;
+        this.Y=0;
+        this.SP=0xFD;
+        this.PC=0;
 
         // Flags
-        this.C = 0;
-        this.Z = 0;
-        this.I = 1;
-        this.D = 0;
-        this.B = 0;
-        this.V = 0;
-        this.N = 0;
+        this.C=0;
+        this.X=0;
+        this.I=1;
+        this.D=0;
+        this.B=0;
+        this.V=0;
+        this.N=0;
 
-        this.cycles = 0;
-        this.extraCycles = 0;
+        this.cycles=0;
+        this.extraCycles=0;
         
         this.initTable();
         this.cpuInit();
@@ -45,6 +45,7 @@ export class CPU6502 {
         p |= (this.D << 3);
         p |= (this.I << 2);
         p |= (this.Z << 1);
+        p |= (this.C << 0);
         return p;
     }
 
@@ -155,6 +156,14 @@ export class CPU6502 {
         this.updateZN(this.Y);
     }
     eor(addr) {
+        this.updateZN(this.X);
+    }
+    ldy(addr) {
+        // loads a value in y, sets Z and N
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+    }
+    eor(addr) {
         // XORs A with the value, set Z and N
         this.A ^= this.mem.readb(addr);
         this.updateZN(this.A);
@@ -222,7 +231,11 @@ export class CPU6502 {
         this.A = result & 0xFF;
         this.updateZN(this.A);
     }
-
+    and(addr) {
+        // ANDs A with the value, set Z and N
+        this.A &= this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
 
     // --- Instructions ---
 
@@ -273,14 +286,6 @@ export class CPU6502 {
     OP_ASL_ACC() {
         // shifts A left 1, set C, Z and N
         this.modeIMP();
-        this.C = (this.A & 0x80)?1:0;
-        this.A = (this.A << 1) & 0xFF;
-        this.updateZN(this.A);
-        return 2;
-    }
-    // 0x18: CLC
-    OP_CLC() {
-        // clear carry flag
         this.modeIMP();
         this.C=0;
         return 2;
@@ -515,6 +520,15 @@ export class CPU6502 {
         op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
         op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
         op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
+        // --- AND Instructions ---
+        op(0x29, "AND_IMM", 2, this.modeIMM, this.and);
+        op(0x25, "AND_ZP", 3, this.modeZP, this.and);
+        op(0x35, "AND_ZPX", 4, this.modeZPX, this.and);
+        op(0x2D, "AND_ABS", 4, this.modeABS, this.and);
+        op(0x3D, "AND_ABSX", 4, this.modeABSX, this.and);
+        op(0x39, "AND_ABSY", 4, this.modeABSY, this.and);
+        op(0x21, "AND_INDX", 6, this.modeINDX, this.and);
+        op(0x31, "AND_INDY", 5, this.modeINDY, this.and);
     }
 
 
@@ -526,19 +540,19 @@ export class CPU6502 {
     }
 
     cpuReset() {
-        this.PC = this.mem.readw(0xFFFC);
-        this.A = 0;
-        this.X = 0;
-        this.Y = 0;
-        this.SP = 0xFD;
-        this.C = 0; 
-        this.Z = 0; 
-        this.I = 1;
-        this.D = 0; 
-        this.B = 0; 
-        this.V = 0; 
-        this.N = 0;
-        this.cycles = 0;
+        this.PC=this.mem.readw(0xFFFC);
+        this.A=0;
+        this.X=0;
+        this.Y=0;
+        this.SP=0xFD;
+        this.C=0; 
+        this.Z=0; 
+        this.I=1;
+        this.D=0; 
+        this.B=0; 
+        this.V=0; 
+        this.N=0;
+        this.cycles=0;
     }
 
     cpuStep() {

@@ -28,12 +28,12 @@ export class Emulator {
             this.cpu.cpuStep();
         }
         
-       return `A: 0x${this.cpu.A.toString(16).padStart(2, '0').toUpperCase()} | ` +
+        return `A: 0x${this.cpu.A.toString(16).padStart(2, '0').toUpperCase()} | ` +
                `X: 0x${this.cpu.X.toString(16).padStart(2, '0').toUpperCase()} | ` +
                `Y: 0x${this.cpu.Y.toString(16).padStart(2, '0').toUpperCase()} | ` +
                `SP: 0x${this.cpu.SP.toString(16).padStart(2, '0').toUpperCase()} | ` +
                `PC: 0x${this.cpu.PC.toString(16).padStart(4, '0').toUpperCase()} | ` +
-               `NV-BDIZC: ${this.cpu.N}${this.cpu.V}${this.cpu.B}${this.cpu.D}${this.cpu.I}${this.cpu.Z}${this.cpu.C} | ` +
+               `NV-BDIZC: ${this.cpu.N}${this.cpu.V}1${this.cpu.B}${this.cpu.D}${this.cpu.I}${this.cpu.Z}${this.cpu.C} | ` +
                `Cycles: ${this.cpu.cycles}`;
     }
 }
