@@ -281,17 +281,6 @@ export class CPU6502 {
         this.PC = (hi << 8) | lo;
         return 7;
     }
-    // 0x06: ASL Zero Page
-    OP_ASL_ZP() {
-        // shifts a memory location left 1, set C, Z and N
-        const addr = this.modeZP();
-        let val = this.mem.readb(addr);
-        this.C = (val & 0x80)?1:0;
-        val = (val << 1) & 0xFF;
-        this.mem.writeb(addr, val);
-        this.updateZN(val);
-        return 5;
-    }
     // 0x08: PHP
     OP_PHP() {
         // pushes the flags to the stack
@@ -484,7 +473,6 @@ export class CPU6502 {
         
         // --- Other Instructions ---
         op(0x00, "BRK", 7, () => this.OP_BRK());
-        op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
         op(0x08, "PHP", 3, () => this.OP_PHP());
         op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
         op(0x10, "BPL", 2, () => this.OP_BPL());
