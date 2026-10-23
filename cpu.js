@@ -37,6 +37,18 @@ export class CPU6502 {
         this.mem.writeb(0x0100 + this.SP, val & 0xFF);
         this.SP = (this.SP - 1) & 0xFF;
     }
+    doBranch(test, rel) {
+        if (test) {
+            // taken branch: 1 extra cycle
+            this.extraCycles++;
+            const oldPC = this.PC;
+            this.PC = (this.PC + rel) & 0xFFFF;
+            // taken branch across page: another extra cycle
+            if ((oldPC >> 8) !== (this.PC >> 8)) {
+                this.extraCycles++;
+            }
+        }
+    }
     getStatusFlags(breakFlag=false) {
         let p=0;
         p |= (this.N << 7);
@@ -296,11 +308,25 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 2;
     }
+    // 0x10: BPL
+    OP_BPL() {
+        // branches if N is 0
+        const offset = this.modeREL();
+        this.doBranch(this.N==0, offset);
+        return 2;
+    }
     // 0x18: CLC
     OP_CLC() {
         // clear carry flag
         this.modeIMP();
         this.C = 0;
+        return 2;
+    }
+    // 0x30: BMI
+    OP_BMI() {
+        // branches if N is 1
+        const offset = this.modeREL();
+        this.doBranch(this.N===1, offset);
         return 2;
     }
     // 0x38: SEC
@@ -310,6 +336,26 @@ export class CPU6502 {
         this.C=1;
         return 2;
     }
+    // 0x4C: JMP Absolute
+    OP_JMP_ABS() {
+        // jump to address
+        this.PC = this.modeABS();
+        return 3;
+    }
+    // 0x50: BVC
+    OP_BVC() {
+        // branches if V is 0
+        const offset = this.modeREL();
+        this.doBranch(this.V===0, offset);
+        return 2;
+    }
+    // 0x70: BVS
+    OP_BVS() {
+        // branches if V is 1
+        const offset = this.modeREL();
+        this.doBranch(this.V===1, offset);
+        return 2;
+    }
     // 0x78: SEI
     OP_SEI() {
         // set interrupt flag
@@ -317,18 +363,19 @@ export class CPU6502 {
         this.I=1;
         return 2;
     }
-    // 0x4C: JMP Absolute
-    OP_JMP_ABS() {
-        // jump to address
-        this.PC = this.modeABS();
-        return 3;
-    }
     // 0x8A: TXA
     OP_TXA() {
         // transfers x to a, sets Z and N
         this.modeIMP();
         this.A = this.X;
         this.updateZN(this.A);
+        return 2;
+    }
+    // 0x90: BCC
+    OP_BCC() {
+        // branches if C is 0
+        const offset = this.modeREL();
+        this.doBranch(this.C===0, offset);
         return 2;
     }
     // 0x9A: TXS
@@ -354,6 +401,13 @@ export class CPU6502 {
         this.updateZN(this.X);
         return 2;
     }
+    // 0xB0: BCS
+    OP_BCS() {
+        // branches if C is 1
+        const offset = this.modeREL();
+        this.doBranch(this.C===1, offset);
+        return 2;
+    }
     // 0xB8: CLV
     OP_CLV() {
         // clear overflow flag
@@ -373,16 +427,19 @@ export class CPU6502 {
     OP_BNE() {
         // branches if Z is 0
         const offset = this.modeREL();
-        let cycles = 2;
-        if (this.Z===0) {
-            cycles++;
-            this.PC = (this.PC + offset) & 0xFFFF;
-        }
-        return cycles;
+        this.doBranch(this.Z===0, offset);
+        return 2;
     }
     // 0xEA: NOP
     OP_NOP() {
         // No Operation
+        return 2;
+    }
+    // 0xF0: BEQ
+    OP_BEQ() {
+        // branches if Z is 1
+        const offset = this.modeREL();
+        this.doBranch(this.Z===1, offset);
         return 2;
     }
     // 0xF8: SED
@@ -430,18 +487,25 @@ export class CPU6502 {
         op(0x06, "ASL_ZP", 5, () => this.OP_ASL_ZP());
         op(0x08, "PHP", 3, () => this.OP_PHP());
         op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
+        op(0x10, "BPL", 2, () => this.OP_BPL());
         op(0x18, "CLC", 2, () => this.OP_CLC());
+        op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
+        op(0x50, "BVC", 2, () => this.OP_BVC());
+        op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x8A, "TXA", 2, () => this.OP_TXA());
+        op(0x90, "BCC", 2, () => this.OP_BCC());
         op(0x9A, "TXS", 2, () => this.OP_TXS());
         op(0xA8, "TAY", 2, () => this.OP_TAY());
         op(0xAA, "TAX", 2, () => this.OP_TAX());
+        op(0xB0, "BCS", 2, () => this.OP_BCS());
         op(0xB8, "CLV", 2, () => this.OP_CLV());
         op(0xBA, "TSX", 2, () => this.OP_TSX());
         op(0xD0, "BNE", 2, () => this.OP_BNE());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
+        op(0xF0, "BEQ", 2, () => this.OP_BEQ());
         op(0xF8, "SED", 2, () => this.OP_SED());
         // --- ADC Instructions ---
         op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
