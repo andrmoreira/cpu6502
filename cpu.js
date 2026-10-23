@@ -21,6 +21,8 @@ export class CPU6502 {
         // cycles left
         this.cycles=0;
         this.extraCycles=0;
+
+        this.error=null; // debug
         
         this.initTable();
         this.cpuInit();
@@ -266,6 +268,7 @@ export class CPU6502 {
             .padStart(4, '0')
             .toUpperCase();
         console.log(`Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`);
+        this.error = `Unknown opcode: 0x${hexOp} at PC: 0x${hexPC}`;
         return 2;
     }
     // 0x00: BRK
@@ -648,6 +651,7 @@ export class CPU6502 {
         this.V=0; 
         this.N=0;
         this.cycles=7;
+        this.error=null;
     }
 
     cpuStep() {

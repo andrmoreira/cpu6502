@@ -26,6 +26,10 @@ export class Emulator {
             const opPC = this.cpu.PC;
             if (this.memory.readb(opPC) === 0x00) break;
             this.cpu.cpuStep();
+
+            if (this.cpu.error) {
+                return this.cpu.error;
+            }
         }
         
         return `A: 0x${this.cpu.A.toString(16).padStart(2, '0').toUpperCase()} | ` +
