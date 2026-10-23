@@ -32,12 +32,19 @@ export class CPU6502 {
     // --- Helpers ---
 
     updateZN(val) {
+        // set Z and N according to the value
         this.Z = (val === 0)?1:0;
         this.N = (val & 0x80)?1:0;
     }
     pushStack(val) {
+        // push value to stack, decrement stack pointer
         this.mem.writeb(0x0100 + this.SP, val & 0xFF);
         this.SP = (this.SP - 1) & 0xFF;
+    }
+    pullStack() {
+        // increment stack pointer, pull value from stack
+        this.SP = (this.SP + 1) & 0xFF;
+        return this.mem.readb(0x0100 + this.SP);
     }
     doBranch(test, rel) {
         if (test) {
@@ -329,6 +336,19 @@ export class CPU6502 {
         this.C = 0;
         return 2;
     }
+    // 0x28: PLP
+    OP_PLP() {
+        // pulls the processor status from the stack
+        this.modeIMP();
+        const val = this.pullStack();
+        this.C = (val & 0x01)?1:0;
+        this.Z = (val & 0x02)?1:0;
+        this.I = (val & 0x04)?1:0;
+        this.D = (val & 0x08)?1:0;
+        this.V = (val & 0x40)?1:0;
+        this.N = (val & 0x80)?1:0;
+        return 4;
+    }
     // 0x30: BMI
     OP_BMI() {
         // branches if N is 1
@@ -342,6 +362,13 @@ export class CPU6502 {
         this.modeIMP();
         this.C=1;
         return 2;
+    }
+    // 0x48: PHA
+    OP_PHA() {
+        // pushes A to the stack
+        this.modeIMP();
+        this.pushStack(this.A);
+        return 3;
     }
     // 0x4A: LSR Accumulator
     OP_LSR_ACC() {
@@ -371,6 +398,14 @@ export class CPU6502 {
         this.modeIMP();
         this.I=0;
         return 2;
+    }
+    // 0x68: PLA
+    OP_PLA() {
+        // pulls A from the stack, set Z and N according to the value
+        this.modeIMP();
+        this.A = this.pullStack();
+        this.updateZN(this.A);
+        return 4;
     }
     // 0x70: BVS
     OP_BVS() {
@@ -534,12 +569,15 @@ export class CPU6502 {
         op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
         op(0x10, "BPL", 2, () => this.OP_BPL());
         op(0x18, "CLC", 2, () => this.OP_CLC());
+        op(0x28, "PLP", 4, () => this.OP_PLP());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
+        op(0x48, "PHA", 3, () => this.OP_PHA());
         op(0x4A, "LSR_ACC", 2, () => this.OP_LSR_ACC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
         op(0x50, "BVC", 2, () => this.OP_BVC());
         op(0x58, "CLI", 2, () => this.OP_CLI());
+        op(0x68, "PLA", 4, () => this.OP_PLA());
         op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x88, "DEY", 2, () => this.OP_DEY());
