@@ -338,6 +338,13 @@ export class CPU6502 {
         this.doBranch(this.V===0, offset);
         return 2;
     }
+    // 0x58: CLI
+    OP_CLI() {
+        // clear interrupt flag
+        this.modeIMP();
+        this.I=0;
+        return 2;
+    }
     // 0x70: BVS
     OP_BVS() {
         // branches if V is 1
@@ -419,6 +426,13 @@ export class CPU6502 {
         this.doBranch(this.Z===0, offset);
         return 2;
     }
+    // 0xD8: CLD
+    OP_CLD() {
+        // clear decimal flag
+        this.modeIMP();
+        this.D=0;
+        return 2;
+    }
     // 0xEA: NOP
     OP_NOP() {
         // No Operation
@@ -481,6 +495,7 @@ export class CPU6502 {
         op(0x38, "SEC", 2, () => this.OP_SEC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
         op(0x50, "BVC", 2, () => this.OP_BVC());
+        op(0x58, "CLI", 2, () => this.OP_CLI());
         op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x8A, "TXA", 2, () => this.OP_TXA());
@@ -492,6 +507,7 @@ export class CPU6502 {
         op(0xB8, "CLV", 2, () => this.OP_CLV());
         op(0xBA, "TSX", 2, () => this.OP_TSX());
         op(0xD0, "BNE", 2, () => this.OP_BNE());
+        op(0xD8, "CLD", 2, () => this.OP_CLD());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
         op(0xF0, "BEQ", 2, () => this.OP_BEQ());
         op(0xF8, "SED", 2, () => this.OP_SED());
