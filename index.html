@@ -23,7 +23,7 @@
         document.getElementById('run').addEventListener('click', () => {
             const hex = document.getElementById('code').value;
             try {
-                output.innerText = emu.runHexSequence(hex);
+                output.innerText = emu.runHex(hex);
             } catch (e) {
                 output.innerText = "Error: " + e.message;
             }

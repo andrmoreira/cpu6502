@@ -7,8 +7,8 @@ export class Emulator {
         this.cpu = new CPU6502(this.memory);
     }
 
-    runHexSequence(hexString) {
-        const bytes = hexString.trim() ? hexString.trim().split(/\s+/).map(b => parseInt(b, 16)) : [];
+    runHex(hexStr) {
+        const bytes = hexStr.trim() ? hexStr.trim().split(/\s+/).map(b => parseInt(b, 16)) : [];
 
         this.memory.ram.fill(0);
         this.memory.prg.fill(0);
