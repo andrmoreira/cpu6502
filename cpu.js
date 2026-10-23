@@ -11,7 +11,7 @@ export class CPU6502 {
 
         // Flags
         this.C=0;
-        this.X=0;
+        this.Z=0;
         this.I=1; // set interrupt disable flag
         this.D=0; // clear decimal mode
         this.B=0;
@@ -141,55 +141,28 @@ export class CPU6502 {
 
     // --- Base Instructions ---
     
-    lda(addr) {
-        // loads a value in a, sets Z and N
-        this.A = this.mem.readb(addr);
-        this.updateZN(this.A);
-    }
-    ldx(addr) {
-        // loads x value in x, sets Z and N
-        this.X = this.mem.readb(addr);
-        this.updateZN(this.X);
-    }
-    ldy(addr) {
-        // loads a value in y, sets Z and N
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-    }
-    eor(addr) {
-        this.updateZN(this.X);
-    }
-    ldy(addr) {
-        // loads a value in y, sets Z and N
-        this.Y = this.mem.readb(addr);
-        this.updateZN(this.Y);
-    }
-    eor(addr) {
-        // XORs A with the value, set Z and N
-        this.A ^= this.mem.readb(addr);
-        this.updateZN(this.A);
-    }
-    ora(addr) {
-        // ORs A with the value, set Z and N
-        this.A |= this.mem.readb(addr);
+    adc(addr) {
+        // Adds the value + C to A, sets C, V, Z and N
+        const val = this.mem.readb(addr);
+        const sum = this.A + val + this.C;
+        this.C = (sum > 0xFF)?1:0;
+        // Set overflow flag if result sign differs from both inputs due to signed overflow
+        this.V = ((~(this.A ^ val) & (this.A ^ sum) & 0x80) !== 0) ? 1 : 0;
+        this.A = sum & 0xFF;
         this.updateZN(this.A);
     }
     and(addr) {
-        // ANDs A with the value, sets Z and N
+        // ANDs A with the value, set Z and N
         this.A &= this.mem.readb(addr);
         this.updateZN(this.A);
     }
-    sta(addr) {
-        // stores a to a memory location
-        this.mem.writeb(addr, this.A);
-    }
-    stx(addr) {
-        // stores x to x memory location
-        this.mem.writeb(addr, this.X);
-    }
-    sty(addr) {
-        // stores y to y memory location
-        this.mem.writeb(addr, this.Y);
+    asl(addr) {
+        // shifts a memory location left 1, set C, Z and N
+        const val = this.mem.readb(addr);
+        this.C = (val & 0x80)?1:0;
+        const result = (val << 1) & 0xFF;
+        this.mem.writeb(addr, result);
+        this.updateZN(result);
     }
     cmp(addr) {
         // sets C, Z and N according to what A - value would do
@@ -212,14 +185,29 @@ export class CPU6502 {
         this.C = (this.Y >= val)?1:0;
         this.updateZN(result);
     }
-    adc(addr) {
-        // Adds the value + C to A, sets C, V, Z and N
-        const val = this.mem.readb(addr);
-        const sum = this.A + val + this.C;
-        this.C = (sum > 0xFF)?1:0;
-        // Set overflow flag if result sign differs from both inputs due to signed overflow
-        this.V = (~(this.A ^ val) & (this.A ^ sum) & 0x80) & 0xFFFF;
-        this.A = sum & 0xFF;
+    eor(addr) {
+        // XORs A with the value, set Z and N
+        this.A ^= this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+    lda(addr) {
+        // loads a value in a, sets Z and N
+        this.A = this.mem.readb(addr);
+        this.updateZN(this.A);
+    }
+    ldx(addr) {
+        // loads x value in x, sets Z and N
+        this.X = this.mem.readb(addr);
+        this.updateZN(this.X);
+    }
+    ldy(addr) {
+        // loads a value in y, sets Z and N
+        this.Y = this.mem.readb(addr);
+        this.updateZN(this.Y);
+    }
+    ora(addr) {
+        // ORs A with the value, set Z and N
+        this.A |= this.mem.readb(addr);
         this.updateZN(this.A);
     }
     sbc(addr) {
@@ -232,10 +220,17 @@ export class CPU6502 {
         this.A = result & 0xFF;
         this.updateZN(this.A);
     }
-    and(addr) {
-        // ANDs A with the value, set Z and N
-        this.A &= this.mem.readb(addr);
-        this.updateZN(this.A);
+    sta(addr) {
+        // stores a to a memory location
+        this.mem.writeb(addr, this.A);
+    }
+    stx(addr) {
+        // stores x to x memory location
+        this.mem.writeb(addr, this.X);
+    }
+    sty(addr) {
+        // stores y to y memory location
+        this.mem.writeb(addr, this.Y);
     }
 
 
@@ -288,8 +283,16 @@ export class CPU6502 {
     OP_ASL_ACC() {
         // shifts A left 1, set C, Z and N
         this.modeIMP();
+        this.C = (this.A & 0x80)?1:0;
+        this.A = (this.A << 1) & 0xFF;
+        this.updateZN(this.A);
+        return 2;
+    }
+    // 0x18: CLC
+    OP_CLC() {
+        // clear carry flag
         this.modeIMP();
-        this.C=0;
+        this.C = 0;
         return 2;
     }
     // 0x38: SEC
@@ -432,6 +435,55 @@ export class CPU6502 {
         op(0xD0, "BNE", 2, () => this.OP_BNE());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
         op(0xF8, "SED", 2, () => this.OP_SED());
+        // --- ADC Instructions ---
+        op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
+        op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
+        op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
+        op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
+        op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
+        op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
+        op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
+        op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
+        // --- AND Instructions ---
+        op(0x29, "AND_IMM", 2, this.modeIMM, this.and);
+        op(0x25, "AND_ZP", 3, this.modeZP, this.and);
+        op(0x35, "AND_ZPX", 4, this.modeZPX, this.and);
+        op(0x2D, "AND_ABS", 4, this.modeABS, this.and);
+        op(0x3D, "AND_ABSX", 4, this.modeABSX, this.and);
+        op(0x39, "AND_ABSY", 4, this.modeABSY, this.and);
+        op(0x21, "AND_INDX", 6, this.modeINDX, this.and);
+        op(0x31, "AND_INDY", 5, this.modeINDY, this.and);
+        // --- ASL Instructions ---
+        op(0x06, "ASL_ZP", 5, this.modeZP, this.asl);
+        op(0x16, "ASL_ZPX", 6, this.modeZPX, this.asl);
+        op(0x0E, "ASL_ABS", 6, this.modeABS, this.asl);
+        op(0x1E, "ASL_ABSX",7, this.modeABSX, this.asl);
+        // --- CMP Instructions ---
+        op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
+        op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
+        op(0xD5, "CMP_ZPX", 4, this.modeZPX, this.cmp);
+        op(0xCD, "CMP_ABS", 4, this.modeABS, this.cmp);
+        op(0xDD, "CMP_ABSX", 4, this.modeABSX, this.cmp);
+        op(0xD9, "CMP_ABSY", 4, this.modeABSY, this.cmp);
+        op(0xC1, "CMP_INDX", 6, this.modeINDX, this.cmp);
+        op(0xD1, "CMP_INDY", 5, this.modeINDY, this.cmp);
+        // --- CPX Instructions ---
+        op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
+        op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
+        op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
+        // --- EOR Instructions ---
+        op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
+        op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
+        op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
+        op(0x4D, "EOR_ABS", 4, this.modeABS, this.eor);
+        op(0x51, "EOR_INDY", 5, this.modeINDY, this.eor);
+        op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
+        op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
+        op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
+        // --- CPY Instructions ---
+        op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
+        op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
+        op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
         // --- LDA Instructions ---
         op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
         op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
@@ -453,15 +505,6 @@ export class CPU6502 {
         op(0xB4, "LDY_ZPX", 4, this.modeZPX, this.ldy);
         op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
         op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
-        // --- EOR Instructions ---
-        op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
-        op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
-        op(0x49, "EOR_IMM", 2, this.modeIMM, this.eor);
-        op(0x4D, "EOR_ABS", 4, this.modeABS, this.eor);
-        op(0x51, "EOR_INDY", 5, this.modeINDY, this.eor);
-        op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
-        op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
-        op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
         // --- ORA Instructions ---
         op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
         op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
@@ -471,6 +514,15 @@ export class CPU6502 {
         op(0x15, "ORA_ZPX", 4, this.modeZPX, this.ora);
         op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
         op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
+        // --- SBC Instructions ---
+        op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
+        op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
+        op(0xF5, "SBC_ZPX", 4, this.modeZPX, this.sbc);
+        op(0xED, "SBC_ABS", 4, this.modeABS, this.sbc);
+        op(0xFD, "SBC_ABSX", 4, this.modeABSX, this.sbc);
+        op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
+        op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
+        op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
         // --- STA Instructions ---
         op(0x81, "STA_INDX", 6, this.modeINDX, this.sta);
         op(0x91, "STA_INDY", 5, this.modeINDY, this.sta);
@@ -487,50 +539,6 @@ export class CPU6502 {
         op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
         op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
         op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
-        // --- CMP Instructions ---
-        op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
-        op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
-        op(0xD5, "CMP_ZPX", 4, this.modeZPX, this.cmp);
-        op(0xCD, "CMP_ABS", 4, this.modeABS, this.cmp);
-        op(0xDD, "CMP_ABSX", 4, this.modeABSX, this.cmp);
-        op(0xD9, "CMP_ABSY", 4, this.modeABSY, this.cmp);
-        op(0xC1, "CMP_INDX", 6, this.modeINDX, this.cmp);
-        op(0xD1, "CMP_INDY", 5, this.modeINDY, this.cmp);
-        // --- CPX Instructions ---
-        op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
-        op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
-        op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
-        // --- CPY Instructions ---
-        op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
-        op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
-        op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
-        // --- ADC Instructions ---
-        op(0x69, "ADC_IMM", 2, this.modeIMM, this.adc);
-        op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
-        op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
-        op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
-        op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
-        op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
-        op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
-        op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
-        // --- SBC Instructions ---
-        op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
-        op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
-        op(0xF5, "SBC_ZPX", 4, this.modeZPX, this.sbc);
-        op(0xED, "SBC_ABS", 4, this.modeABS, this.sbc);
-        op(0xFD, "SBC_ABSX", 4, this.modeABSX, this.sbc);
-        op(0xF9, "SBC_ABSY", 4, this.modeABSY, this.sbc);
-        op(0xE1, "SBC_INDX", 6, this.modeINDX, this.sbc);
-        op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
-        // --- AND Instructions ---
-        op(0x29, "AND_IMM", 2, this.modeIMM, this.and);
-        op(0x25, "AND_ZP", 3, this.modeZP, this.and);
-        op(0x35, "AND_ZPX", 4, this.modeZPX, this.and);
-        op(0x2D, "AND_ABS", 4, this.modeABS, this.and);
-        op(0x3D, "AND_ABSX", 4, this.modeABSX, this.and);
-        op(0x39, "AND_ABSY", 4, this.modeABSY, this.and);
-        op(0x21, "AND_INDX", 6, this.modeINDX, this.and);
-        op(0x31, "AND_INDY", 5, this.modeINDY, this.and);
     }
 
 
