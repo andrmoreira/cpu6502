@@ -234,6 +234,14 @@ export class CPU6502 {
         this.Y = this.mem.readb(addr);
         this.updateZN(this.Y);
     }
+    lsr(addr) {
+        // shifts a memory location right 1, set C, Z and N
+        const val = this.mem.readb(addr);
+        this.C = (val & 0x01) & 0xFF;
+        const result = (val >> 1) & 0xFF;
+        this.updateZN(result);
+        this.mem.writeb(addr, result);
+    }
     ora(addr) {
         // ORs A with the value, set Z and N
         this.A |= this.mem.readb(addr);
@@ -333,6 +341,15 @@ export class CPU6502 {
         // set carry flag
         this.modeIMP();
         this.C=1;
+        return 2;
+    }
+    // 0x4A: LSR Accumulator
+    OP_LSR_ACC() {
+        // shifts A right 1, set C, Z and N
+        this.modeIMP();
+        this.C = (this.A & 0x01);
+        this.A = (this.A >> 1) & 0xFF;
+        this.updateZN(this.A);
         return 2;
     }
     // 0x4C: JMP Absolute
@@ -519,6 +536,7 @@ export class CPU6502 {
         op(0x18, "CLC", 2, () => this.OP_CLC());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
+        op(0x4A, "LSR_ACC", 2, () => this.OP_LSR_ACC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
         op(0x50, "BVC", 2, () => this.OP_BVC());
         op(0x58, "CLI", 2, () => this.OP_CLI());
@@ -617,6 +635,11 @@ export class CPU6502 {
         op(0xB4, "LDY_ZPX", 4, this.modeZPX, this.ldy);
         op(0xAC, "LDY_ABS", 4, this.modeABS, this.ldy);
         op(0xBC, "LDY_ABSX", 4, this.modeABSX, this.ldy);
+        // --- LSR Instructions ---
+        op(0x46, "LSR_ZP", 5, this.modeZP, this.lsr);
+        op(0x56, "LSR_ZPX", 6, this.modeZPX, this.lsr);
+        op(0x4E, "LSR_ABS", 6, this.modeABS, this.lsr);
+        op(0x5E, "LSR_ABSX", 7, this.modeABSX, this.lsr);
         // --- ORA Instructions ---
         op(0x09, "ORA_IMM", 2, this.modeIMM, this.ora);
         op(0x05, "ORA_ZP", 3, this.modeZP, this.ora);
