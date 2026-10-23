@@ -207,6 +207,13 @@ export class CPU6502 {
         this.C = (this.Y >= val)?1:0;
         this.updateZN(result);
     }
+    dec(addr) {
+        // decrements a memory location, set Z and N
+        const val = this.mem.readb(addr);
+        const result = (val - 1) & 0xFF;
+        this.updateZN(result);
+        this.mem.writeb(addr, result);
+    }
     eor(addr) {
         // XORs A with the value, set Z and N
         this.A ^= this.mem.readb(addr);
@@ -553,6 +560,11 @@ export class CPU6502 {
         op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
         op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
         op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
+        // --- DEC Instructions ---
+        op(0xC6, "DEC_ZP", 5, this.modeZP, this.dec);
+        op(0xD6, "DEC_ZPX", 6, this.modeZPX, this.dec);
+        op(0xCE, "DEC_ABS", 6, this.modeABS, this.dec);
+        op(0xDE, "DEC_ABSX", 7, this.modeABSX, this.dec);
         // --- EOR Instructions ---
         op(0x41, "EOR_INDX", 6, this.modeINDX, this.eor);
         op(0x45, "EOR_ZP", 3, this.modeZP, this.eor);
