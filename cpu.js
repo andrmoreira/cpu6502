@@ -164,6 +164,14 @@ export class CPU6502 {
         this.mem.writeb(addr, result);
         this.updateZN(result);
     }
+    bit(addr) {
+        // bit test A with value, set N to b7, V to b6 and Z to result
+        const val = this.mem.readb(addr);
+        const result = this.A & val;
+        this.Z = (result==0)?1:0;
+        this.N = (val & 0x80)?1:0;
+        this.V = (val & 0x40)?1:0;
+    }
     cmp(addr) {
         // sets C, Z and N according to what A - value would do
         const val = this.mem.readb(addr);
@@ -458,6 +466,9 @@ export class CPU6502 {
         op(0x16, "ASL_ZPX", 6, this.modeZPX, this.asl);
         op(0x0E, "ASL_ABS", 6, this.modeABS, this.asl);
         op(0x1E, "ASL_ABSX",7, this.modeABSX, this.asl);
+        // --- BIT Instructions ---
+        op(0x24, "BIT_ZP", 3, this.modeZP, this.bit);
+        op(0x2C, "BIT_ABS", 4, this.modeABS, this.bit);
         // --- CMP Instructions ---
         op(0xC9, "CMP_IMM", 2, this.modeIMM, this.cmp);
         op(0xC5, "CMP_ZP", 3, this.modeZP, this.cmp);
