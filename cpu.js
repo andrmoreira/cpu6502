@@ -369,6 +369,14 @@ export class CPU6502 {
         this.I=1;
         return 2;
     }
+    // 0x88: DEY
+    OP_DEY() {
+        // decrements Y, set Z and N
+        this.modeIMP();
+        this.Y--;
+        this.updateZN(this.Y);
+        return 2;
+    }
     // 0x8A: TXA
     OP_TXA() {
         // transfers x to a, sets Z and N
@@ -426,6 +434,14 @@ export class CPU6502 {
         // transfers the stack pointer to x, sets Z and N
         this.modeIMP();
         this.X = this.SP;
+        this.updateZN(this.X);
+        return 2;
+    }
+    // 0xCA: DEX
+    OP_DEX() {
+        // decrements X, set Z and N
+        this.modeIMP();
+        this.X--;
         this.updateZN(this.X);
         return 2;
     }
@@ -508,6 +524,7 @@ export class CPU6502 {
         op(0x58, "CLI", 2, () => this.OP_CLI());
         op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
+        op(0x88, "DEY", 2, () => this.OP_DEY());
         op(0x8A, "TXA", 2, () => this.OP_TXA());
         op(0x90, "BCC", 2, () => this.OP_BCC());
         op(0x9A, "TXS", 2, () => this.OP_TXS());
@@ -516,6 +533,7 @@ export class CPU6502 {
         op(0xB0, "BCS", 2, () => this.OP_BCS());
         op(0xB8, "CLV", 2, () => this.OP_CLV());
         op(0xBA, "TSX", 2, () => this.OP_TSX());
+        op(0xCA, "DEX", 2, () => this.OP_DEX());
         op(0xD0, "BNE", 2, () => this.OP_BNE());
         op(0xD8, "CLD", 2, () => this.OP_CLD());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
