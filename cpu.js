@@ -118,8 +118,9 @@ export class CPU6502 {
         const hi = this.mem.readb((zp + 1) & 0xFF);
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.Y) & 0xFFFF;
-        if (hi !== (finalAddr >> 8))
+        if (hi !== (finalAddr >> 8)) {
             this.extraCycles=1;
+        }
         return finalAddr;
     }
     // Absolute (16-bit)
@@ -136,8 +137,9 @@ export class CPU6502 {
         this.PC += 2;
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.X) & 0xFFFF;
-        if (hi !== (finalAddr >> 8))
+        if (hi !== (finalAddr >> 8)) {
             this.extraCycles=1;
+        }
         return finalAddr;
     }
     // Absolute, Y
@@ -147,13 +149,14 @@ export class CPU6502 {
         this.PC += 2;
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.Y) & 0xFFFF;
-        if (hi !== (finalAddr >> 8))
+        if (hi !== (finalAddr >> 8)) {
             this.extraCycles=1;
+        }
         return finalAddr;
     }
     // Relative
     modeREL() {
-        const offset = this.mem.readb(this.PC);
+        let offset = this.mem.readb(this.PC);
         this.PC++;
         if (offset & 0x80) offset |= 0xFF00; // Sign extend
         return offset;
