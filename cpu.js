@@ -238,6 +238,12 @@ export class CPU6502 {
         this.A ^= this.mem.readb(addr);
         this.updateZN(this.A);
     }
+    inc(addr) {
+        // increments a memory location, set Z and N
+        const result = (this.mem.readb(addr) + 1) & 0xFF;
+        this.updateZN(result);
+        this.mem.writeb(addr, result);
+    }
     lda(addr) {
         // loads a value in a, sets Z and N
         this.A = this.mem.readb(addr);
@@ -462,7 +468,7 @@ export class CPU6502 {
     OP_DEY() {
         // decrements Y, set Z and N
         this.modeIMP();
-        this.Y--;
+        this.Y = (this.Y - 1) & 0xFF;
         this.updateZN(this.Y);
         return 2;
     }
@@ -526,11 +532,19 @@ export class CPU6502 {
         this.updateZN(this.X);
         return 2;
     }
+    // 0xC8: INY
+    OP_INY() {
+        // increments Y, set Z and N
+        this.modeIMP();
+        this.Y = (this.Y + 1) & 0xFF;
+        this.updateZN(this.Y);
+        return 2;
+    }
     // 0xCA: DEX
     OP_DEX() {
         // decrements X, set Z and N
         this.modeIMP();
-        this.X--;
+        this.X = (this.X - 1) & 0xFF;
         this.updateZN(this.X);
         return 2;
     }
@@ -546,6 +560,14 @@ export class CPU6502 {
         // clear decimal flag
         this.modeIMP();
         this.D=0;
+        return 2;
+    }
+    // 0xE8: INX
+    OP_INX() {
+        // increments X, set Z and N
+        this.modeIMP();
+        this.X = (this.X + 1) & 0xFF;
+        this.updateZN(this.X);
         return 2;
     }
     // 0xEA: NOP
@@ -629,9 +651,11 @@ export class CPU6502 {
         op(0xB0, "BCS", 2, () => this.OP_BCS());
         op(0xB8, "CLV", 2, () => this.OP_CLV());
         op(0xBA, "TSX", 2, () => this.OP_TSX());
+        op(0xC8, "INY", 2, () => this.OP_INY());
         op(0xCA, "DEX", 2, () => this.OP_DEX());
         op(0xD0, "BNE", 2, () => this.OP_BNE());
         op(0xD8, "CLD", 2, () => this.OP_CLD());
+        op(0xE8, "INX", 2, () => this.OP_INX());
         op(0xEA, "NOP", 2, () => this.OP_NOP());
         op(0xF0, "BEQ", 2, () => this.OP_BEQ());
         op(0xF8, "SED", 2, () => this.OP_SED());
@@ -674,6 +698,10 @@ export class CPU6502 {
         op(0xE0, "CPX_IMM", 2, this.modeIMM, this.cpx);
         op(0xE4, "CPX_ZP", 3, this.modeZP, this.cpx);
         op(0xEC, "CPX_ABS", 4, this.modeABS, this.cpx);
+        // --- CPY Instructions ---
+        op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
+        op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
+        op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
         // --- DEC Instructions ---
         op(0xC6, "DEC_ZP", 5, this.modeZP, this.dec);
         op(0xD6, "DEC_ZPX", 6, this.modeZPX, this.dec);
@@ -688,10 +716,11 @@ export class CPU6502 {
         op(0x55, "EOR_ZPX", 4, this.modeZPX, this.eor);
         op(0x59, "EOR_ABSY", 4, this.modeABSY, this.eor);
         op(0x5D, "EOR_ABSX", 4, this.modeABSX, this.eor);
-        // --- CPY Instructions ---
-        op(0xC0, "CPY_IMM", 2, this.modeIMM, this.cpy);
-        op(0xC4, "CPY_ZP", 3, this.modeZP, this.cpy);
-        op(0xCC, "CPY_ABS", 4, this.modeABS, this.cpy);
+        // --- INC Instructions ---
+        op(0xE6, "INC_ZP", 5, this.modeZP, this.inc);
+        op(0xF6, "INC_ZPX", 6, this.modeZPX, this.inc);
+        op(0xEE, "INC_ABS", 6, this.modeABS, this.inc);
+        op(0xFE, "INC_ABSX", 7, this.modeABSX, this.inc);
         // --- LDA Instructions ---
         op(0xA9, "LDA_IMM", 2, this.modeIMM, this.lda);
         op(0xA5, "LDA_ZP", 3, this.modeZP, this.lda);
