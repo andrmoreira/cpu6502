@@ -1,3 +1,4 @@
-# nesjs
+cpu6502
+=====
 
-JavaScript NES Emulator
+MOS 6502 CPU implementation in JavaScript

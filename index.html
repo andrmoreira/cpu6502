@@ -15,15 +15,15 @@
     <pre id="output">Ready...</pre>
 
     <script type="module">
-        import {Emulator} from './emulator.js';
+        import {Test} from './test.js';
 
-        const emu = new Emulator();
+        const test = new Test();
         const output = document.getElementById('output');
 
         document.getElementById('run').addEventListener('click', () => {
             const hex = document.getElementById('code').value;
             try {
-                output.innerText = emu.runHex(hex);
+                output.innerText = test.runHex(hex);
             } catch (e) {
                 output.innerText = "Error: " + e.message;
             }
