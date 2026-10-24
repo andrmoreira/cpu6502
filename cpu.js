@@ -272,6 +272,15 @@ export class CPU6502 {
         this.A |= this.mem.readb(addr);
         this.updateZN(this.A);
     }
+    rol(addr) {
+        // rolls a memory location right 1, rolls C in, set C, Z and N
+        const val = this.mem.readb(addr);
+        const oldC = this.C;
+        this.C = (val & 0x80)?1:0;
+        const result = ((val << 1) | oldC) & 0xFF;
+        this.updateZN(result);
+        this.mem.writeb(addr, result);
+    }
     sbc(addr) {
         // subtracts the value + !C from A, set C, V, Z and N
         const val = this.mem.readb(addr);
@@ -376,6 +385,16 @@ export class CPU6502 {
         this.V = (val & 0x40)?1:0;
         this.N = (val & 0x80)?1:0;
         return 4;
+    }
+    // 0x2A: ROL Accumulator
+    OP_ROL_ACC() {
+        // rolls A left 1, rolls C in, set C, Z and N
+        this.modeIMP();
+        const oldC = this.C;
+        this.C = (this.A & 0x80)?1:0;
+        this.A = ((this.A << 1) | oldC) & 0xFF;
+        this.updateZN(this.A);
+        return 2;
     }
     // 0x30: BMI
     OP_BMI() {
@@ -580,7 +599,7 @@ export class CPU6502 {
         // branches if Z is 1
         const offset = this.modeREL();
         this.doBranch(this.Z===1, offset);
-        return 2;
+       return 2;
     }
     // 0xF8: SED
     OP_SED() {
@@ -630,6 +649,7 @@ export class CPU6502 {
         op(0x18, "CLC", 2, () => this.OP_CLC());
         op(0x20, "JSR_ABS", 6, () => this.OP_JSR_ABS());
         op(0x28, "PLP", 4, () => this.OP_PLP());
+        op(0x2A, "ROL_ACC", 2, () => this.OP_ROL_ACC());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
         op(0x48, "PHA", 3, () => this.OP_PHA());
@@ -756,6 +776,11 @@ export class CPU6502 {
         op(0x15, "ORA_ZPX", 4, this.modeZPX, this.ora);
         op(0x19, "ORA_ABSY", 4, this.modeABSY, this.ora);
         op(0x1D, "ORA_ABSX", 4, this.modeABSX, this.ora);
+        // --- ROL Instructions ---
+        op(0x26, "ROL_ZP", 5, this.modeZP, this.rol);
+        op(0x36, "ROL_ZPX", 6, this.modeZPX, this.rol);
+        op(0x2E, "ROL_ABS", 6, this.modeABS, this.rol);
+        op(0x3E, "ROL_ABSX", 7, this.modeABSX, this.rol);
         // --- SBC Instructions ---
         op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
         op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
