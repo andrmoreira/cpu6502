@@ -102,6 +102,15 @@ export class CPU6502 {
         this.PC++;
         return addr;
     }
+    // Indirect
+    modeIND() {
+        const ptr = this.mem.readb(this.PC) |
+            (this.mem.readb(this.PC+1) << 8);
+        this.PC += 2;
+        const lo = this.mem.readb(ptr);
+        const hi = this.mem.readb((ptr+1) & 0xFFFF);
+        return (hi << 8) | lo;
+    }
     // Indirect, X
     modeINDX() {
         let zp = (this.mem.readb(this.PC) + this.X) & 0xFF;
@@ -339,6 +348,16 @@ export class CPU6502 {
         this.C = 0;
         return 2;
     }
+    // 0x20: JSR Absolute
+    OP_JSR_ABS() {
+        // jump to subroutine
+        const addr = this.modeABS();
+        const pushPC = (this.PC - 1) & 0xFFFF;
+        this.pushStack(pushPC >> 8);
+        this.pushStack(pushPC & 0xFF);
+        this.PC = addr;
+        return 6;
+    }
     // 0x28: PLP
     OP_PLP() {
         // pulls the processor status from the stack
@@ -402,6 +421,15 @@ export class CPU6502 {
         this.I=0;
         return 2;
     }
+    // 0x60: RTS
+    OP_RTS() {
+        // Return from Subroutine
+        this.modeIMP();
+        const lo = this.pullStack();
+        const hi = this.pullStack();
+        this.PC = (((hi << 8) | lo) + 1) & 0xFFFF;
+        return 6;
+    }
     // 0x68: PLA
     OP_PLA() {
         // pulls A from the stack, set Z and N according to the value
@@ -409,6 +437,12 @@ export class CPU6502 {
         this.A = this.pullStack();
         this.updateZN(this.A);
         return 4;
+    }
+    // 0x6C: JMP Indirect
+    OP_JMP_IND() {
+        // jump to indirect address
+        this.PC = this.modeIND();
+        return 5;
     }
     // 0x70: BVS
     OP_BVS() {
@@ -572,6 +606,7 @@ export class CPU6502 {
         op(0x0A, "ASL_ACC", 2, () => this.OP_ASL_ACC());
         op(0x10, "BPL", 2, () => this.OP_BPL());
         op(0x18, "CLC", 2, () => this.OP_CLC());
+        op(0x20, "JSR_ABS", 6, () => this.OP_JSR_ABS());
         op(0x28, "PLP", 4, () => this.OP_PLP());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
@@ -580,7 +615,9 @@ export class CPU6502 {
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
         op(0x50, "BVC", 2, () => this.OP_BVC());
         op(0x58, "CLI", 2, () => this.OP_CLI());
+        op(0x60, "RTS", 6, () => this.OP_RTS());
         op(0x68, "PLA", 4, () => this.OP_PLA());
+        op(0x6C, "JMP_IND", 5, () => this.OP_JMP_IND());
         op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x88, "DEY", 2, () => this.OP_DEY());
