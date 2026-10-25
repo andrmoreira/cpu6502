@@ -425,7 +425,7 @@ export class CPU6502 {
         this.modeIMP();
         const val = this.pullStack();
         this.C = (val & 0x01)?1:0;
-        this.Z = (val & 0x04)?1:0;
+        this.Z = (val & 0x02)?1:0;
         this.I = (val & 0x04)?1:0;
         this.D = (val & 0x08)?1:0;
         this.V = (val & 0x40)?1:0;
