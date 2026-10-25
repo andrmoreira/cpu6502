@@ -273,11 +273,20 @@ export class CPU6502 {
         this.updateZN(this.A);
     }
     rol(addr) {
-        // rolls a memory location right 1, rolls C in, set C, Z and N
+        // rolls a memory location left 1, rolls C in, set C, Z and N
         const val = this.mem.readb(addr);
         const oldC = this.C;
         this.C = (val & 0x80)?1:0;
         const result = ((val << 1) | oldC) & 0xFF;
+        this.updateZN(result);
+        this.mem.writeb(addr, result);
+    }
+    ror(addr) {
+        // rolls a memory location right 1, rolls C in, set C, Z and N
+        const val = this.mem.readb(addr);
+        const oldC = this.C;
+        this.C = (val & 0x01)?1:0;
+        const result = ((val >> 1) | (oldC << 7)) & 0xFF;
         this.updateZN(result);
         this.mem.writeb(addr, result);
     }
@@ -410,6 +419,22 @@ export class CPU6502 {
         this.C=1;
         return 2;
     }
+    // 0x40: RTI
+    OP_RIT() {
+        // return from interrupt
+        this.modeIMP();
+        const val = this.pullStack();
+        this.C = (val & 0x01)?1:0;
+        this.Z = (val & 0x04)?1:0;
+        this.I = (val & 0x04)?1:0;
+        this.D = (val & 0x08)?1:0;
+        this.V = (val & 0x40)?1:0;
+        this.N = (val & 0x80)?1:0;
+        const lo = this.pullStack();
+        const hi = this.pullStack();
+        this.PC = (hi << 8) | lo;
+        return 6;
+    }
     // 0x48: PHA
     OP_PHA() {
         // pushes A to the stack
@@ -463,6 +488,16 @@ export class CPU6502 {
         this.updateZN(this.A);
         return 4;
     }
+    // 0x6A: ROR Acumulador
+    OP_ROR_ACC() {
+        // rolls A right 1, rolls C in, set C, Z and N
+        this.modeIMP();
+        const oldC = this.C;
+        this.C = (this.A & 0x01)?1:0;
+        this.A = ((this.A >> 1) | (oldC << 7)) & 0xFF;
+        this.updateZN(this.A);
+        return 2;
+    }
     // 0x6C: JMP Indirect
     OP_JMP_IND() {
         // jump to indirect address
@@ -504,6 +539,14 @@ export class CPU6502 {
         // branches if C is 0
         const offset = this.modeREL();
         this.doBranch(this.C===0, offset);
+        return 2;
+    }
+    // 0x98: TYA
+    OP_TYA() {
+        // transfers y to a, sets Z and
+        this.modeIMP();
+        this.A = this.Y;
+        this.updateZN(this.A);
         return 2;
     }
     // 0x9A: TXS
@@ -652,6 +695,7 @@ export class CPU6502 {
         op(0x2A, "ROL_ACC", 2, () => this.OP_ROL_ACC());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
+        op(0x40, "RIT", 6, () => this.OP_RIT());
         op(0x48, "PHA", 3, () => this.OP_PHA());
         op(0x4A, "LSR_ACC", 2, () => this.OP_LSR_ACC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
@@ -659,12 +703,14 @@ export class CPU6502 {
         op(0x58, "CLI", 2, () => this.OP_CLI());
         op(0x60, "RTS", 6, () => this.OP_RTS());
         op(0x68, "PLA", 4, () => this.OP_PLA());
+        op(0x6A, "ROR_ACC", 2, () => this.OP_ROR_ACC());
         op(0x6C, "JMP_IND", 5, () => this.OP_JMP_IND());
         op(0x70, "BVS", 2, () => this.OP_BVS());
         op(0x78, "SEI", 2, () => this.OP_SEI());
         op(0x88, "DEY", 2, () => this.OP_DEY());
         op(0x8A, "TXA", 2, () => this.OP_TXA());
         op(0x90, "BCC", 2, () => this.OP_BCC());
+        op(0x98, "TYA", 2, () => this.OP_TYA());
         op(0x9A, "TXS", 2, () => this.OP_TXS());
         op(0xA8, "TAY", 2, () => this.OP_TAY());
         op(0xAA, "TAX", 2, () => this.OP_TAX());
@@ -781,6 +827,11 @@ export class CPU6502 {
         op(0x36, "ROL_ZPX", 6, this.modeZPX, this.rol);
         op(0x2E, "ROL_ABS", 6, this.modeABS, this.rol);
         op(0x3E, "ROL_ABSX", 7, this.modeABSX, this.rol);
+        // --- ROR Instructions ---
+        op(0x66, "ROR_ZP", 5, this.modeZP, this.ror);
+        op(0x76, "ROR_ZPX", 6, this.modeZPX, this.ror);
+        op(0x6E, "ROR_ABS", 6, this.modeABS, this.ror);
+        op(0x7E, "ROR_ABSX", 7, this.modeABSX, this.ror);
         // --- SBC Instructions ---
         op(0xE9, "SBC_IMM", 2, this.modeIMM, this.sbc);
         op(0xE5, "SBC_ZP", 3, this.modeZP, this.sbc);
