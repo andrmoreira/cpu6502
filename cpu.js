@@ -108,7 +108,7 @@ export class CPU6502 {
             (this.mem.readb(this.PC+1) << 8);
         this.PC += 2;
         const lo = this.mem.readb(ptr);
-        const hi = this.mem.readb((ptr+1) & 0xFFFF);
+        const hi = this.mem.readb((ptr & 0xFF00) | ((ptr + 1) & 0xFF));
         return (hi << 8) | lo;
     }
     // Indirect, X
@@ -127,7 +127,7 @@ export class CPU6502 {
         const hi = this.mem.readb((zp + 1) & 0xFF);
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.Y) & 0xFFFF;
-        if (hi !== (finalAddr >> 8)) {
+        if ((base & 0xFF00) !== (finalAddr & 0xFF00)) {
             this.extraCycles=1;
         }
         return finalAddr;
@@ -146,7 +146,7 @@ export class CPU6502 {
         this.PC += 2;
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.X) & 0xFFFF;
-        if (hi !== (finalAddr >> 8)) {
+        if ((base & 0xFF00) !== (finalAddr & 0xFF00)) {
             this.extraCycles=1;
         }
         return finalAddr;
@@ -158,7 +158,7 @@ export class CPU6502 {
         this.PC += 2;
         const base = (hi << 8) | lo;
         const finalAddr = (base + this.Y) & 0xFFFF;
-        if (hi !== (finalAddr >> 8)) {
+        if ((base & 0xFF00) !== (finalAddr & 0xFF00)) {
             this.extraCycles=1;
         }
         return finalAddr;
@@ -179,9 +179,10 @@ export class CPU6502 {
         const val = this.mem.readb(addr);
         const sum = this.A + val + this.C;
         this.C = (sum > 0xFF)?1:0;
+        const res = sum & 0xFF;
         // Set overflow flag if result sign differs from both inputs due to signed overflow
-        this.V = ((~(this.A ^ val) & (this.A ^ sum) & 0x80) !== 0) ? 1 : 0;
-        this.A = sum & 0xFF;
+        this.V = ((~(this.A ^ val) & (this.A ^ res) & 0x80) !== 0)?1:0;
+        this.A = res;
         this.updateZN(this.A);
     }
     and(addr) {
@@ -293,11 +294,12 @@ export class CPU6502 {
     sbc(addr) {
         // subtracts the value + !C from A, set C, V, Z and N
         const val = this.mem.readb(addr);
-        const result = this.A - val - (1 - this.C);
-        this.C = (result >= 0)?1:0;
+        const tmp = this.A - val - (1 - this.C);
+        this.C = (tmp >= 0)?1:0;
+        const result = tmp & 0xFF;
         // Set overflow flag if signed overflow occurs during subtraction
         this.V = ((this.A ^ val) & (this.A ^ result) & 0x80)?1:0;
-        this.A = result & 0xFF;
+        this.A = result;
         this.updateZN(this.A);
     }
     sta(addr) {
@@ -420,7 +422,7 @@ export class CPU6502 {
         return 2;
     }
     // 0x40: RTI
-    OP_RIT() {
+    OP_RTI() {
         // return from interrupt
         this.modeIMP();
         const val = this.pullStack();
@@ -662,23 +664,30 @@ export class CPU6502 {
             this.table[i] = {
                 name: "unknown",
                 cycles: 2,
-                exec: (op=i) => this.OP_UNKNOWN(op)
+                exec: () => this.OP_UNKNOWN(i)
             };
         }
         
         const op = (code, name, cycles, modeFn, instFn) => {
             this.table[code] = {
                 name,
+                cycles,
                 exec: () => {
                     this.extraCycles=0;
-                    // Exec with addressing mode
+                     // Exec with addressing mode
                     if (instFn) {
                         const addr = modeFn.call(this);
+                        if (instFn === this.sta ||
+                                instFn === this.stx ||
+                                instFn === this.sty) {
+                            this.extraCycles = 0;
+                        }
                         instFn.call(this, addr);
                         return cycles + this.extraCycles;
                     } else {
-                        // Exec direct
-                        return modeFn.call(this);
+                         // Exec direct
+                        modeFn.call(this);
+                        return cycles + this.extraCycles;
                     }
                 }
             };
@@ -695,7 +704,7 @@ export class CPU6502 {
         op(0x2A, "ROL_ACC", 2, () => this.OP_ROL_ACC());
         op(0x30, "BMI", 2, () => this.OP_BMI());
         op(0x38, "SEC", 2, () => this.OP_SEC());
-        op(0x40, "RIT", 6, () => this.OP_RIT());
+        op(0x40, "RTI", 6, () => this.OP_RTI());
         op(0x48, "PHA", 3, () => this.OP_PHA());
         op(0x4A, "LSR_ACC", 2, () => this.OP_LSR_ACC());
         op(0x4C, "JMP_ABS", 3, () => this.OP_JMP_ABS());
@@ -843,7 +852,7 @@ export class CPU6502 {
         op(0xF1, "SBC_INDY", 5, this.modeINDY, this.sbc);
         // --- STA Instructions ---
         op(0x81, "STA_INDX", 6, this.modeINDX, this.sta);
-        op(0x91, "STA_INDY", 5, this.modeINDY, this.sta);
+        op(0x91, "STA_INDY", 6, this.modeINDY, this.sta);
         op(0x85, "STA_ZP", 3, this.modeZP, this.sta);
         op(0x95, "STA_ZPX", 4, this.modeZPX, this.sta);
         op(0x8D, "STA_ABS", 4, this.modeABS, this.sta);
@@ -851,7 +860,7 @@ export class CPU6502 {
         op(0x99, "STA_ABSY", 5, this.modeABSY, this.sta);
         // --- STX Instructions ---
         op(0x86, "STX_ZP", 3, this.modeZP, this.stx);
-        op(0x96, "STX_ZPX", 4, this.modeZPX, this.stx);
+        op(0x96, "STX_ZPY", 4, this.modeZPY, this.stx);
         op(0x8E, "STX_ABS", 4, this.modeABS, this.stx);
         // --- STY Instructions ---
         op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
@@ -892,9 +901,7 @@ export class CPU6502 {
 
     cpuStep() {
         const op = this.mem.readb(this.PC++);
-        const instruction = this.table[op]; 
-        const cycles = instruction.exec();
-        this.cycles += cycles;
-        return cycles;
+        return this.table[op].exec();
     }
 }
+//if (typeof window!=='undefined') { window.CPU6502 = CPU6502; }
