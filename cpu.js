@@ -739,8 +739,8 @@ export class CPU6502 {
         op(0x65, "ADC_ZP", 3, this.modeZP, this.adc);
         op(0x75, "ADC_ZPX", 4, this.modeZPX, this.adc);
         op(0x6D, "ADC_ABS", 4, this.modeABS, this.adc);
-        op(0x79, "ADC_ABSX", 4, this.modeABSX, this.adc);
-        op(0x7D, "ADC_ABSY", 4, this.modeABSY, this.adc);
+        op(0x79, "ADC_ABSY", 4, this.modeABSY, this.adc);
+        op(0x7D, "ADC_ABSX", 4, this.modeABSX, this.adc);
         op(0x61, "ADC_INDX", 6, this.modeINDX, this.adc);
         op(0x71, "ADC_INDY", 5, this.modeINDY, this.adc);
         // --- AND Instructions ---
