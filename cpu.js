@@ -899,9 +899,12 @@ export class CPU6502 {
         this.error=null;
     }
 
+    // Execute one instruction
     cpuStep() {
-        const op = this.mem.readb(this.PC++);
-        return this.table[op].exec();
-    }
+        const op = this.mem.readb(this.PC++);
+        const instruction = this.table[op];
+        const cycles = instruction.exec();
+        this.cycles += cycles;
+        return cycles;
+    }
 }
-//if (typeof window!=='undefined') { window.CPU6502 = CPU6502; }
