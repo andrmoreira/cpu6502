@@ -302,6 +302,11 @@ export class CPU6502 {
         this.A = result;
         this.updateZN(this.A);
     }
+    slo(addr) {
+        // shifts a memory location left 1, ORs a with the result, sets N, Z and C
+        this.asl(addr);
+        this.ora(addr);
+    }
     sta(addr) {
         // stores a to a memory location
         this.mem.writeb(addr, this.A);
@@ -866,6 +871,9 @@ export class CPU6502 {
         op(0x84, "STY_ZP", 3, this.modeZP, this.sty);
         op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
         op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
+        // --- Undocumented Opcodes ---
+        op(0x04, "NOP_ZP", 3, this.modeZP, this.nop);
+        op(0x07, "SLO_ZP", 5, this.modeZP, this.slo);
     }
 
 
