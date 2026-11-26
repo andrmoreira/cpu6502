@@ -872,7 +872,7 @@ export class CPU6502 {
         op(0x94, "STY_ZPX", 4, this.modeZPX, this.sty);
         op(0x8C, "STY_ABS", 4, this.modeABS, this.sty);
         // --- Undocumented Opcodes ---
-        op(0x04, "NOP_ZP", 3, this.modeZP, this.nop);
+        op(0x04, "NOP_ZP", 3, this.modeZP, this.OP_NOP);
         op(0x07, "SLO_ZP", 5, this.modeZP, this.slo);
     }
 
